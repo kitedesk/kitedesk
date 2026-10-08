@@ -121,11 +121,7 @@ Open http://localhost:8000 and sign in with any demo account. They all use the p
 
 ### Start a real installation
 
-Run `php artisan migrate` without `--seed`, then create the first administrator:
-
-```bash
-php artisan kitedesk:create-admin
-```
+Run `php artisan kitedesk:setup` instead of `migrate --seed`. It migrates the database and prints a link to the setup screen, where you name your helpdesk and create the first administrator. The link carries a setup code, so only someone with access to the server can finish the setup. To skip the screen, set `KITEDESK_ADMIN_EMAIL` and `KITEDESK_ADMIN_PASSWORD` before running it, or run `php artisan kitedesk:create-admin`.
 
 Then sign in. Use the **Admin center** to add mailboxes, invite your team, and set up SLAs and branding.
 
@@ -137,10 +133,11 @@ Then sign in. Use the **Admin center** to add mailboxes, invite your team, and s
 - **Scheduler:** run `php artisan schedule:run` every minute. It checks SLA breaches, polls mailboxes, sends surveys, resumes workflows, closes solved tickets and cleans up old data. With several servers, use a shared cache so each task runs once.
 - **Realtime:** configure Laravel Reverb (`BROADCAST_CONNECTION=reverb`) for live updates.
 - **Secrets key:** set `KITEDESK_SECRETS_KEY` so customer secrets don't depend on `APP_KEY`. See `.env.example` for how to generate one.
-- **MCP:** run `php artisan passport:keys`, or set `PASSPORT_PRIVATE_KEY` and `PASSPORT_PUBLIC_KEY`, if you enable the MCP server.
+- **MCP:** `php artisan kitedesk:setup` creates the OAuth keys in `storage/`. With several servers that don't share `storage/`, set `PASSPORT_PRIVATE_KEY` and `PASSPORT_PUBLIC_KEY` instead.
 - **Proxies:** behind a load balancer or reverse proxy, set `TRUSTED_PROXIES`, so rate limits and HTTPS detection see the real client.
 - **Spam:** if guest requests are open, set the `TURNSTILE_*` keys.
-- **On every deploy:** run `php artisan migrate --force` and `php artisan optimize`.
+- **On every deploy:** run `php artisan kitedesk:setup` (migrations, plus the OAuth keys and the `KITEDESK_ADMIN_*` administrator on a new installation) and `php artisan optimize`.
+- **Docker:** the image needs only environment variables, at least `APP_KEY` (generate one with `docker run --rm <image> php artisan key:generate --show`). The web container runs `kitedesk:setup` and `optimize` on every start, and logs the setup screen's link until there is an administrator. Mount a volume on `/app/storage`.
 
 Every setting in `.env.example` has a comment explaining it.
 

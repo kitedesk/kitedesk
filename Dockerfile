@@ -8,8 +8,10 @@
 #   scheduler  php artisan schedule:work
 #   realtime   php artisan reverb:start --host=0.0.0.0 --port=8081
 #
-# Mount a volume on /app/storage to keep uploads, and run `php artisan migrate --force`
-# after each upgrade.
+# Configure it with environment variables only. On start, the web server runs
+# `php artisan kitedesk:setup`: it creates the OAuth keys when PASSPORT_* is empty, migrates the
+# database and creates the KITEDESK_ADMIN_* administrator on a new installation. APP_KEY is
+# required. Mount a volume on /app/storage to keep uploads and the generated keys.
 
 ARG PHP_VERSION=8.4
 ARG NODE_VERSION=22

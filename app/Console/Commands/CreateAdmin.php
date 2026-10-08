@@ -2,11 +2,9 @@
 
 namespace App\Console\Commands;
 
-use App\Domain\Accounts\Enums\UserType;
-use App\Domain\Accounts\Support\RoleCatalog;
+use App\Domain\Accounts\Actions\CreateAdministrator;
 use App\Domain\Entitlements\Enums\Limit;
 use App\Domain\Entitlements\Support\PlanLimits;
-use App\Models\User;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
@@ -25,7 +23,7 @@ use function Laravel\Prompts\text;
 #[Description('Create an administrator account')]
 class CreateAdmin extends Command
 {
-    public function handle(): int
+    public function handle(CreateAdministrator $createAdministrator): int
     {
         $input = [
             'name' => $this->option('name') ?: text('Name', required: true),
@@ -49,13 +47,7 @@ class CreateAdmin extends Command
             return self::FAILURE;
         }
 
-        $user = new User([
-            'name' => $input['name'],
-            'email' => mb_strtolower($input['email']),
-            'password' => $input['password'],
-        ]);
-        $user->forceFill(['type' => UserType::Staff, 'email_verified_at' => now()])->save();
-        $user->syncRoles([RoleCatalog::administrator()]);
+        $user = $createAdministrator->handle($input['name'], $input['email'], $input['password']);
 
         $this->components->info("Administrator {$user->email} created.");
 

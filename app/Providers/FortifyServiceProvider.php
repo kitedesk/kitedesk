@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Fortify\ResetUserPassword;
+use App\Domain\Support\Installation;
 use App\Http\Responses\PasswordResetLinkRequestedResponse;
 use App\Models\User;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -78,10 +79,13 @@ class FortifyServiceProvider extends ServiceProvider
      */
     private function configureViews(): void
     {
-        Fortify::loginView(fn (Request $request) => Inertia::render('auth/login', [
-            'canResetPassword' => Features::enabled(Features::resetPasswords()),
-            'status' => $request->session()->get('status'),
-        ]));
+        // Nobody can sign in to a new installation yet: it has to be set up first.
+        Fortify::loginView(fn (Request $request) => Installation::needsSetup()
+            ? redirect()->route('setup.show')
+            : Inertia::render('auth/login', [
+                'canResetPassword' => Features::enabled(Features::resetPasswords()),
+                'status' => $request->session()->get('status'),
+            ]));
 
         Fortify::resetPasswordView(fn (Request $request) => Inertia::render('auth/reset-password', [
             'email' => $request->email,

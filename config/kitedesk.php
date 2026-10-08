@@ -20,6 +20,29 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | First Administrator
+    |--------------------------------------------------------------------------
+    |
+    | Until the installation has staff, visitors are sent to a setup screen
+    | that names the helpdesk and creates the first administrator, guarded
+    | by the code `php artisan kitedesk:setup` prints. "setup_screen" turns
+    | it off for installations that create their administrators elsewhere.
+    |
+    | `php artisan kitedesk:setup` (run by the Docker image on start) can
+    | instead create "first_admin" from the environment, skipping the screen.
+    |
+    */
+
+    'setup_screen' => true,
+
+    'first_admin' => [
+        'name' => env('KITEDESK_ADMIN_NAME') ?: 'Administrator',
+        'email' => env('KITEDESK_ADMIN_EMAIL'),
+        'password' => env('KITEDESK_ADMIN_PASSWORD'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Guest Requests
     |--------------------------------------------------------------------------
     |

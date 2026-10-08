@@ -1,11 +1,19 @@
 <?php
 
+use App\Domain\Support\Installation;
 use App\Http\Controllers\AvatarController;
 use App\Http\Controllers\BrandingAssetController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\SetupController;
 use Illuminate\Support\Facades\Route;
 
-Route::redirect('/', '/help')->name('home');
+// A new installation sends visitors to the setup screen until it has an administrator.
+Route::get('/', fn () => redirect(Installation::needsSetup() ? route('setup.show') : '/help'))->name('home');
+
+Route::controller(SetupController::class)->prefix('setup')->name('setup.')->group(function () {
+    Route::get('/', 'show')->name('show');
+    Route::post('/', 'store')->middleware('throttle:10,1')->name('store');
+});
 
 Route::get('branding/{file}', BrandingAssetController::class)
     ->where('file', '[A-Za-z0-9]+\.[a-z]{3,4}')
