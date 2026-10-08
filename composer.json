@@ -60,6 +60,7 @@
             "composer install",
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\"",
             "@php artisan key:generate",
+            "@php -r \"exit(file_exists('storage/oauth-private.key') ? 0 : 1);\" || php artisan passport:keys",
             "@php artisan migrate --force",
             "npm install",
             "npm run build"

@@ -12,6 +12,9 @@ abstract class TestCase extends BaseTestCase
     {
         parent::setUp();
 
+        // Pages render without built assets, so tests don't depend on `npm run build` or `npm run dev`.
+        $this->withoutVite();
+
         // No real DNS in tests: every host looks public unless a test says otherwise.
         PublicNetwork::resolveUsing(fn (string $host): array => ['93.184.216.34']);
     }
