@@ -16,10 +16,11 @@
 ARG PHP_VERSION=8.4
 ARG NODE_VERSION=22
 
-FROM node:${NODE_VERSION}-bookworm-slim AS node
+# Composer packages and the frontend build. Both are the same on every platform, so these
+# stages always run natively on the build machine, even for arm64 images. Node must match
+# the build machine too, or the build stage would get a binary it can't run.
+FROM --platform=$BUILDPLATFORM node:${NODE_VERSION}-bookworm-slim AS node
 
-# Composer packages and the frontend build. Both are the same on every platform, so this
-# stage always runs natively on the build machine, even for arm64 images.
 FROM --platform=$BUILDPLATFORM dunglas/frankenphp:1-php${PHP_VERSION} AS build
 
 RUN install-php-extensions bcmath exif intl pcntl zip
