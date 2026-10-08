@@ -92,13 +92,44 @@ Built with Laravel 13, Inertia v3, React 19, Tailwind CSS 4 and shadcn/ui. The i
 
 ## Getting started
 
-### Requirements
+### Run with Docker
+
+To try KiteDesk, run a single container that keeps everything, including an SQLite database, in one volume:
+
+```bash
+docker run -d --name kitedesk -p 8080:8080 \
+  -e APP_KEY="base64:$(openssl rand -base64 32)" \
+  -e APP_URL=http://localhost:8080 \
+  -e DB_DATABASE=/app/storage/database.sqlite \
+  -e QUEUE_CONNECTION=sync \
+  -v kitedesk-storage:/app/storage \
+  ghcr.io/kitedesk/kitedesk:latest
+
+docker logs kitedesk    # shows the link to the setup screen
+```
+
+Open the link to name your helpdesk and create the first administrator. `QUEUE_CONNECTION=sync` sends emails and runs automations during the request, since this container runs no queue worker or scheduler.
+
+For a real installation, use [`docker-compose.yml`](docker-compose.yml). It runs the web server, a queue worker and the scheduler, with PostgreSQL and Redis:
+
+```bash
+curl -O https://raw.githubusercontent.com/kitedesk/kitedesk/main/docker-compose.yml
+echo "APP_KEY=base64:$(openssl rand -base64 32)" > .env
+docker compose up -d
+docker compose logs web    # shows the link to the setup screen
+```
+
+Add your mail server and any other setting from [`.env.example`](.env.example) to `.env`, and set `APP_URL` to the address people will use. Keep `APP_KEY` safe and never change it: it encrypts sessions and stored secrets. To update, run `docker compose pull && docker compose up -d`; migrations run when the web container starts.
+
+### Run from source
+
+You need:
 
 - PHP 8.3 or newer, and Composer
 - Node.js 22 or newer
 - A database. SQLite works out of the box; use PostgreSQL or MySQL in production.
 
-### Try it with demo data
+#### Try it with demo data
 
 ```bash
 git clone <repository-url> kitedesk && cd kitedesk
@@ -119,7 +150,7 @@ Open http://localhost:8000 and sign in with any demo account. They all use the p
 | light@example.com    | Light agent (internal notes only) |
 | customer@example.com | Customer                          |
 
-### Start a real installation
+#### Start a real installation
 
 Run `php artisan kitedesk:setup` instead of `migrate --seed`. It migrates the database and prints a link to the setup screen, where you name your helpdesk and create the first administrator. The link carries a setup code, so only someone with access to the server can finish the setup. To skip the screen, set `KITEDESK_ADMIN_EMAIL` and `KITEDESK_ADMIN_PASSWORD` before running it, or run `php artisan kitedesk:create-admin`.
 
@@ -137,7 +168,7 @@ Then sign in. Use the **Admin center** to add mailboxes, invite your team, and s
 - **Proxies:** behind a load balancer or reverse proxy, set `TRUSTED_PROXIES`, so rate limits and HTTPS detection see the real client.
 - **Spam:** if guest requests are open, set the `TURNSTILE_*` keys.
 - **On every deploy:** run `php artisan kitedesk:setup` (migrations, plus the OAuth keys and the `KITEDESK_ADMIN_*` administrator on a new installation) and `php artisan optimize`.
-- **Docker:** the image needs only environment variables, at least `APP_KEY` (generate one with `docker run --rm <image> php artisan key:generate --show`). The web container runs `kitedesk:setup` and `optimize` on every start, and logs the setup screen's link until there is an administrator. Mount a volume on `/app/storage`.
+- **Docker:** the image needs only environment variables, at least `APP_KEY` (generate one with `echo "base64:$(openssl rand -base64 32)"`). The web container runs `kitedesk:setup` and `optimize` on every start, and logs the setup screen's link until there is an administrator. Mount a volume on `/app/storage`. [`docker-compose.yml`](docker-compose.yml) is a working example.
 
 Every setting in `.env.example` has a comment explaining it.
 

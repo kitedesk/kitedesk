@@ -1,0 +1,91 @@
+# KiteDesk with PostgreSQL and Redis. Put APP_KEY (and anything else from .env.example you
+# want to change) in a .env file next to this one, then run `docker compose up -d`.
+#
+#   echo "APP_KEY=base64:$(openssl rand -base64 32)" > .env
+#
+# The setup link appears in `docker compose logs web` until the first administrator exists.
+
+x-kitedesk: &kitedesk
+    image: ghcr.io/kitedesk/kitedesk:latest
+    restart: unless-stopped
+    # Every setting in .env reaches the app; the ones below connect it to the other services.
+    env_file: .env
+    environment:
+        APP_KEY: ${APP_KEY:?Set APP_KEY in .env}
+        APP_URL: ${APP_URL:-http://localhost:8080}
+        DB_CONNECTION: pgsql
+        DB_HOST: postgres
+        DB_PORT: 5432
+        DB_DATABASE: kitedesk
+        DB_USERNAME: kitedesk
+        DB_PASSWORD: ${DB_PASSWORD:-kitedesk}
+        REDIS_HOST: redis
+        CACHE_STORE: redis
+        SESSION_DRIVER: redis
+        QUEUE_CONNECTION: redis
+    volumes:
+        - storage:/app/storage
+
+services:
+    web:
+        <<: *kitedesk
+        ports:
+            - "8080:8080"
+        depends_on:
+            postgres:
+                condition: service_healthy
+            redis:
+                condition: service_started
+        # The server starts only after `kitedesk:setup` has migrated the database.
+        healthcheck:
+            test:
+                [
+                    "CMD",
+                    "php",
+                    "-r",
+                    "exit(@file_get_contents('http://127.0.0.1:8080/up') === false ? 1 : 0);",
+                ]
+            interval: 10s
+            start_period: 60s
+
+    queue:
+        <<: *kitedesk
+        command: ["php", "artisan", "queue:work", "--tries=3"]
+        healthcheck:
+            disable: true
+        depends_on:
+            web:
+                condition: service_healthy
+
+    scheduler:
+        <<: *kitedesk
+        command: ["php", "artisan", "schedule:work"]
+        healthcheck:
+            disable: true
+        depends_on:
+            web:
+                condition: service_healthy
+
+    postgres:
+        image: postgres:17
+        restart: unless-stopped
+        environment:
+            POSTGRES_DB: kitedesk
+            POSTGRES_USER: kitedesk
+            POSTGRES_PASSWORD: ${DB_PASSWORD:-kitedesk}
+        volumes:
+            - postgres:/var/lib/postgresql/data
+        healthcheck:
+            test: ["CMD", "pg_isready", "-U", "kitedesk"]
+            interval: 5s
+
+    redis:
+        image: redis:7
+        restart: unless-stopped
+        volumes:
+            - redis:/data
+
+volumes:
+    storage:
+    postgres:
+    redis:

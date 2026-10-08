@@ -10,7 +10,7 @@ mkdir -p \
     storage/logs
 
 # Cache the configuration, routes, views and events from this container's environment.
-php artisan optimize --no-interaction
+php artisan optimize --no-interaction --quiet
 
 # The web server (the default command) prepares the installation: OAuth keys, migrations and
 # the first administrator. Queue, scheduler and one-off commands skip it.

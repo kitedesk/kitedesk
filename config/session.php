@@ -71,12 +71,9 @@ return [
     | connection that should be used to manage these sessions. This should
     | correspond to a connection in your database configuration options.
     |
-    | Named rather than "the default connection": the session is read before a
-    | request picks its workspace, so it must not follow the default connection.
-    |
     */
 
-    'connection' => env('SESSION_CONNECTION', env('DB_CONNECTION', 'sqlite')),
+    'connection' => env('SESSION_CONNECTION'),
 
     /*
     |--------------------------------------------------------------------------
