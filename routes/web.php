@@ -27,3 +27,4 @@ require __DIR__.'/guest.php';
 require __DIR__.'/secrets.php';
 require __DIR__.'/help.php';
 require __DIR__.'/inbound.php';
+require __DIR__.'/widget.php';

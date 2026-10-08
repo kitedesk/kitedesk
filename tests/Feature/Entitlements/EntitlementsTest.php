@@ -19,6 +19,7 @@ use App\Domain\Tickets\Support\SatisfactionSurvey;
 use App\Domain\Webhooks\Enums\WebhookEvent;
 use App\Domain\Webhooks\Models\Webhook;
 use App\Domain\Webhooks\Support\Webhooks;
+use App\Domain\Widget\WidgetSettings;
 use App\Domain\Workflows\Enums\WorkflowTrigger;
 use App\Domain\Workflows\Listeners\StartWorkflows;
 use App\Domain\Workflows\Models\Workflow;
@@ -228,4 +229,13 @@ test('without custom email templates, the default wording is sent and only turni
     expect($saved->subject)->toBe('Custom')
         ->and($saved->is_active)->toBeFalse()
         ->and(EmailTemplate::for(EmailTemplateEvent::TicketReceived)->is_active)->toBeFalse();
+});
+
+test('the website widget disappears from websites when the plan leaves it out', function () {
+    (new WidgetSettings(enabled: true))->save();
+    plan(without: [Feature::Widget]);
+
+    $this->get(route('widget.script'))->assertNotFound();
+    $this->get(route('widget.frame'))->assertNotFound();
+    $this->actingAs($this->admin)->get(route('admin.widget.edit'))->assertForbidden();
 });

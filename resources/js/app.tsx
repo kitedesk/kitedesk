@@ -47,6 +47,7 @@ void createInertiaApp({
         switch (true) {
             case name === 'welcome':
             case name === 'errors/show':
+            case name === 'widget/frame':
                 // The error page picks its own shell from who is signed in.
                 return null;
             case name.startsWith('auth/'):

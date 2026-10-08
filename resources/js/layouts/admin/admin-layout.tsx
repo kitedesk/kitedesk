@@ -10,6 +10,7 @@ import {
     KeyRound,
     Mail,
     MailCheck,
+    MessageCircle,
     Palette,
     Route,
     ShieldCheck,
@@ -195,6 +196,14 @@ export const adminNavSections: { title: string; items: AdminNavItem[] }[] = [
                 permission: 'admin.integrations',
                 icon: Sparkles,
                 description: 'AI drafts, summaries and the MCP server',
+            },
+            {
+                title: 'Website widget',
+                href: '/admin/widget',
+                feature: 'widget',
+                permission: 'admin.integrations',
+                icon: MessageCircle,
+                description: 'Let visitors open tickets from your website',
             },
             {
                 title: 'Webhooks',

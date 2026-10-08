@@ -55,7 +55,7 @@ enum Permission: string
             self::ManageEmail => __('Email and email templates'),
             self::ManageAutomation => __('Routing rules and workflows'),
             self::ManageHelpCenter => __('Help center'),
-            self::ManageIntegrations => __('Webhooks and API tokens'),
+            self::ManageIntegrations => __('AI assistant, website widget, webhooks and API tokens'),
         };
     }
 

@@ -702,6 +702,7 @@ const channelLabels: Record<string, string> = {
     agent: 'Agent',
     api: 'API',
     email: 'Email',
+    widget: 'Website widget',
 };
 
 const fieldLabels: Record<string, string> = {

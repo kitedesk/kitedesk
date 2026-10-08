@@ -2,15 +2,12 @@
 
 namespace App\Http\Controllers\Portal;
 
-use App\Domain\Mail\Enums\EmailTemplateEvent;
-use App\Domain\Mail\Models\EmailTemplate;
 use App\Domain\Tickets\Actions\AddMessage;
-use App\Domain\Tickets\Actions\CreateTicket;
+use App\Domain\Tickets\Actions\SubmitGuestTicket;
 use App\Domain\Tickets\Enums\TicketChannel;
 use App\Domain\Tickets\Enums\TicketStatus;
 use App\Domain\Tickets\Models\Ticket;
 use App\Domain\Tickets\Models\TicketMessage;
-use App\Domain\Tickets\Notifications\TicketReceived;
 use App\Domain\Tickets\Support\GuestAccess;
 use App\Domain\Tickets\Support\SatisfactionSurvey;
 use App\Domain\Tickets\Support\TicketCatalog;
@@ -20,10 +17,8 @@ use App\Http\Requests\Portal\StoreGuestReplyRequest;
 use App\Http\Requests\Portal\StoreGuestTicketRequest;
 use App\Http\Resources\TicketMessageResource;
 use App\Http\Resources\TicketResource;
-use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
@@ -50,51 +45,38 @@ class GuestTicketController extends Controller
         ]);
     }
 
-    public function store(StoreGuestTicketRequest $request, CreateTicket $createTicket): RedirectResponse
+    public function store(StoreGuestTicketRequest $request, SubmitGuestTicket $submitGuestTicket): RedirectResponse
     {
         abort_unless(GuestAccess::enabled(), 404);
 
-        $email = Str::lower($request->string('email')->toString());
-        $requester = User::query()->where('email', $email)->first();
-        $isNewPerson = $requester === null;
-
-        // Deactivated people can't open requests; answer as for any existing account.
-        if ($requester?->isDeactivated() === true) {
-            Inertia::flash('toast', ['type' => 'success', 'message' => __('Thanks! We emailed you a link to follow your request.')]);
-
-            return to_route('guest.check');
-        }
-
-        $requester ??= User::query()->create([
+        $submission = $submitGuestTicket->handle([
             'name' => $request->string('name')->toString(),
-            'email' => $email,
-            'password' => Str::random(40),
-        ]);
-
-        $ticket = $createTicket->handle($requester, [
+            'email' => $request->string('email')->toString(),
             'subject' => $request->string('subject')->toString(),
             'body' => $request->string('body')->toString(),
             'category_id' => $request->validated('category_id'),
             'custom_fields' => $request->customFields(),
             'attachments' => $request->attachments(),
-            // Anyone can type an existing account's email here; agents see the request wasn't signed in.
-            'tags' => $isNewPerson ? [] : ['unverified_sender'],
         ], TicketChannel::Portal);
 
-        // The "request received" auto-reply already carries the link; send it ourselves only when it's off.
-        if (! EmailTemplate::for(EmailTemplateEvent::TicketReceived)->is_active) {
-            $requester->notify(new TicketReceived($ticket));
+        // Deactivated people can't open requests; answer as for any existing account.
+        if ($submission === null) {
+            Inertia::flash('toast', ['type' => 'success', 'message' => __('Thanks! We emailed you a link to follow your request.')]);
+
+            return to_route('guest.check');
         }
+
+        $ticket = $submission->ticket;
 
         // Someone typing an existing account's email must not see that account's tickets:
         // they get the link by email instead.
-        if (! $isNewPerson) {
+        if (! $submission->isNewPerson) {
             Inertia::flash('toast', ['type' => 'success', 'message' => __('Thanks! We emailed you a link to follow request :number.', ['number' => $ticket->reference()])]);
 
             return to_route('guest.check');
         }
 
-        GuestAccess::grant($request, $ticket, $requester);
+        GuestAccess::grant($request, $ticket, $submission->requester);
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Thanks! Your request :number was received.', ['number' => $ticket->reference()])]);
 
         return to_route('guest.tickets.show', $ticket);

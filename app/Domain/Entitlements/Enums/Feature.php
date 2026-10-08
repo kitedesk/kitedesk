@@ -39,4 +39,7 @@ enum Feature: string
 
     /** Changing the wording of the emails KiteDesk sends. Turning one off is always allowed. */
     case CustomEmailTemplates = 'custom_email_templates';
+
+    /** The support widget other websites embed to open tickets. */
+    case Widget = 'widget';
 }

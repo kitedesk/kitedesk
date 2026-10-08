@@ -10,7 +10,12 @@ import { defineConfig, lazyPlugins } from 'vite-plus';
 export default defineConfig({
     plugins: lazyPlugins(() => [
         laravel({
-            input: ['resources/css/app.css', 'resources/js/app.tsx'],
+            input: [
+                'resources/css/app.css',
+                'resources/js/app.tsx',
+                // The support widget's embed script, served by WidgetController.
+                'resources/js/widget/loader.ts',
+            ],
             refresh: true,
             fonts: [
                 bunny('Instrument Sans', {
