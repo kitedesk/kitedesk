@@ -1,0 +1,131 @@
+name: release
+
+# Run from the Actions tab and pick what kind of release this is. The next version comes
+# from the latest vX.Y.Z tag, following Semantic Versioning:
+#
+#   patch  fixes only                        v1.4.2 -> v1.4.3
+#   minor  new features, nothing breaks       v1.4.2 -> v1.5.0
+#   major  something breaks for existing users v1.4.2 -> v2.0.0
+#
+# It builds and pushes the Docker image, then publishes the GitHub Release with notes from
+# the merged pull requests and a ready-to-run archive (dependencies and frontend included).
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Kind of release
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+        default: patch
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Work out the version
+        id: version
+        env:
+          BUMP: ${{ inputs.bump }}
+        run: |
+          latest=$(git tag --list 'v*' --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1 || true)
+          IFS=. read -r major minor patch <<< "${latest#v}"
+          major=${major:-0} minor=${minor:-0} patch=${patch:-0}
+
+          case "$BUMP" in
+            major) major=$((major + 1)); minor=0; patch=0 ;;
+            minor) minor=$((minor + 1)); patch=0 ;;
+            patch) patch=$((patch + 1)) ;;
+          esac
+
+          version="$major.$minor.$patch"
+          echo "Releasing v$version (previous: ${latest:-none})"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "major=$major" >> "$GITHUB_OUTPUT"
+
+          # Image names must be lowercase, and owner names on GitHub may not be.
+          echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
+
+      - name: Setup QEMU
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+
+      - name: Setup Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Image tags
+        id: meta
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        with:
+          images: ${{ env.IMAGE }}
+          tags: |
+            type=semver,pattern={{version}},value=v${{ steps.version.outputs.version }}
+            type=semver,pattern={{major}}.{{minor}},value=v${{ steps.version.outputs.version }}
+            type=semver,pattern={{major}},value=v${{ steps.version.outputs.version }},enable=${{ steps.version.outputs.major != '0' }}
+            type=raw,value=latest
+
+      - name: Build and push the image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build the archive
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          container=$(docker create --platform linux/amd64 "$IMAGE:$VERSION")
+          docker cp "$container:/app" "kitedesk-$VERSION"
+          docker rm "$container"
+
+          # The image links public/storage to its own path. Installs run storage:link.
+          rm -f "kitedesk-$VERSION/public/storage"
+
+          tar -czf "kitedesk-$VERSION.tar.gz" "kitedesk-$VERSION"
+          sha256sum "kitedesk-$VERSION.tar.gz" > SHA256SUMS
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          gh release create "v$VERSION" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "v$VERSION" \
+            --generate-notes \
+            --notes "Docker image: \`docker pull $IMAGE:$VERSION\`" \
+            "kitedesk-$VERSION.tar.gz" SHA256SUMS
