@@ -121,6 +121,68 @@ docker compose logs web    # shows the link to the setup screen
 
 Add your mail server and any other setting from [`.env.example`](.env.example) to `.env`, and set `APP_URL` to the address people will use. Keep `APP_KEY` safe and never change it: it encrypts sessions and stored secrets. To update, run `docker compose pull && docker compose up -d`; migrations run when the web container starts.
 
+### Run on your own server
+
+Any Linux server with Docker works; 2 GB of memory is enough for a small team. Before you start, point your domain's DNS (an `A` record, plus `AAAA` for IPv6) to the server, and allow ports 22, 80 and 443 in its firewall.
+
+1. Install Docker:
+
+    ```bash
+    curl -fsSL https://get.docker.com | sh
+    ```
+
+2. Download the compose file and create the settings. Replace `help.example.com` with your domain:
+
+    ```bash
+    mkdir -p /opt/kitedesk && cd /opt/kitedesk
+    curl -O https://raw.githubusercontent.com/kitedesk/kitedesk/main/docker-compose.yml
+
+    cat > .env <<EOF
+    APP_KEY=base64:$(openssl rand -base64 32)
+    APP_URL=https://help.example.com
+    DB_PASSWORD=$(openssl rand -hex 24)
+
+    # HTTPS through the bundled Caddy proxy, with automatic Let's Encrypt certificates
+    COMPOSE_PROFILES=https
+    DOMAIN=help.example.com
+    WEB_PORT=127.0.0.1:8080
+    TRUSTED_PROXIES=*
+    SESSION_SECURE_COOKIE=true
+    EOF
+    ```
+
+    `WEB_PORT` keeps the app itself off the internet, so every request goes through the proxy, which is why it's safe to trust it. `DB_PASSWORD` is only read when the database is first created, so set it now.
+
+3. Add a mail server, so KiteDesk can send notifications and replies. Any SMTP service works:
+
+    ```bash
+    cat >> .env <<EOF
+    MAIL_MAILER=smtp
+    MAIL_HOST=smtp.example.com
+    MAIL_PORT=587
+    MAIL_USERNAME=...
+    MAIL_PASSWORD=...
+    MAIL_FROM_ADDRESS=help@example.com
+    EOF
+    ```
+
+4. Start it, then open the setup link from the logs:
+
+    ```bash
+    docker compose up -d
+    docker compose logs web
+    ```
+
+**Backups:** keep a copy of `.env`, since KiteDesk can't read its stored secrets without `APP_KEY`. Back up the database and the uploads regularly, for example from a daily cron job:
+
+```bash
+cd /opt/kitedesk
+docker compose exec -T postgres pg_dump -U kitedesk kitedesk | gzip > "backup-$(date +%F).sql.gz"
+docker compose run --rm --no-deps --user root -v "$PWD:/backup" queue tar -czf "/backup/storage-$(date +%F).tar.gz" -C /app storage
+```
+
+**Updates:** run `docker compose pull && docker compose up -d`. Migrations run when the web container starts.
+
 ### Run from source
 
 You need:

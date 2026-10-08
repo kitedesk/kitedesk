@@ -29,8 +29,10 @@ x-kitedesk: &kitedesk
 services:
     web:
         <<: *kitedesk
+        # On a server behind the `https` proxy below, set WEB_PORT=127.0.0.1:8080 so the app
+        # is reachable only through it.
         ports:
-            - "8080:8080"
+            - "${WEB_PORT:-8080}:8080"
         depends_on:
             postgres:
                 condition: service_healthy
@@ -66,6 +68,30 @@ services:
             web:
                 condition: service_healthy
 
+    # HTTPS with automatic Let's Encrypt certificates. Turn it on with COMPOSE_PROFILES=https
+    # and DOMAIN in .env, once the domain's DNS points to this server.
+    https:
+        image: caddy:2
+        restart: unless-stopped
+        profiles: [https]
+        command:
+            [
+                "caddy",
+                "reverse-proxy",
+                "--from",
+                "${DOMAIN:-localhost}",
+                "--to",
+                "web:8080",
+            ]
+        ports:
+            - "80:80"
+            - "443:443"
+            - "443:443/udp"
+        volumes:
+            - caddy:/data
+        depends_on:
+            - web
+
     postgres:
         image: postgres:17
         restart: unless-stopped
@@ -89,3 +115,4 @@ volumes:
     storage:
     postgres:
     redis:
+    caddy:
