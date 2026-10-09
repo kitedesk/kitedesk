@@ -42,4 +42,7 @@ enum Feature: string
 
     /** The support widget other websites embed to open tickets. */
     case Widget = 'widget';
+
+    /** Internal requests: tickets agents open for another department. */
+    case InternalRequests = 'internal_requests';
 }

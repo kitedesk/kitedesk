@@ -68,7 +68,7 @@ class CreateTicket
             'custom_fields' => $attributes['custom_fields'] ?? null,
         ]);
         $ticket->created_at = now();
-        $ticket->last_customer_reply_at = ($author ?? $requester)->isStaff() ? null : $ticket->created_at;
+        $ticket->last_customer_reply_at = ($author ?? $requester)->isStaff() && $channel !== TicketChannel::Internal ? null : $ticket->created_at;
         $ticket->number = $this->numbers->next($ticket->created_at);
         $ticket->setRelation('category', $category);
         $ticket->setRelation('requester', $requester);

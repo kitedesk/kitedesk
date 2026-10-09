@@ -58,6 +58,7 @@ type Filters = {
     group_id?: string;
     category_id?: string;
     assignee_id?: string;
+    channel?: string;
 };
 
 type Props = {
@@ -68,6 +69,7 @@ type Props = {
         groups: NamedRecord[];
         categories: CategoryNode[];
         agents: NamedRecord[];
+        channels: { value: string; label: string }[];
     };
 };
 
@@ -342,6 +344,12 @@ export default function Reports({
                             label: agent.name,
                         }))}
                         onChange={(assignee_id) => visit({ assignee_id })}
+                    />
+                    <FilterSelect
+                        label={t('All channels')}
+                        value={filters.channel}
+                        options={options.channels}
+                        onChange={(channel) => visit({ channel })}
                     />
                 </div>
 

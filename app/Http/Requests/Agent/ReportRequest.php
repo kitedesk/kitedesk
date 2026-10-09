@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Agent;
 
 use App\Domain\Reports\TicketReport;
+use App\Domain\Tickets\Enums\TicketChannel;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -35,6 +36,7 @@ class ReportRequest extends FormRequest
             'group_id' => ['nullable', 'integer', Rule::exists('groups', 'id')],
             'category_id' => ['nullable', 'integer', Rule::exists('ticket_categories', 'id')],
             'assignee_id' => ['nullable', 'integer', Rule::exists('users', 'id')],
+            'channel' => ['nullable', Rule::enum(TicketChannel::class)],
         ];
     }
 
@@ -64,6 +66,7 @@ class ReportRequest extends FormRequest
             groupId: $this->integerOrNull('group_id'),
             categoryId: $this->integerOrNull('category_id'),
             assigneeId: $this->integerOrNull('assignee_id'),
+            channel: TicketChannel::tryFrom((string) $this->validated('channel')),
         );
     }
 
@@ -73,7 +76,7 @@ class ReportRequest extends FormRequest
     public function filters(): array
     {
         return array_filter(
-            array_map(strval(...), $this->safe()->only(['range', 'from', 'to', 'group_id', 'category_id', 'assignee_id'])),
+            array_map(strval(...), $this->safe()->only(['range', 'from', 'to', 'group_id', 'category_id', 'assignee_id', 'channel'])),
             fn (string $value): bool => $value !== '',
         );
     }

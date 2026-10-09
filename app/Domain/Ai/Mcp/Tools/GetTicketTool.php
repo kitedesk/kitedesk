@@ -34,7 +34,8 @@ class GetTicketTool extends Tool
         $user = $request->user();
         $ticket = McpAccess::ticket($user, $input['ticket']);
 
-        if ($ticket === null) {
+        // The agent behind an internal request doesn't get the team's internal notes.
+        if ($ticket === null || $ticket->isRequestingSide($user)) {
             return Response::error(__('Ticket not found.'));
         }
 

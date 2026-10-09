@@ -10,6 +10,7 @@ import type { AiFeatures } from '@/components/tickets/ai-assistant';
 import { ReplyComposer } from '@/components/tickets/reply-composer';
 import { SlaTimer } from '@/components/tickets/sla-timer';
 import { StatusBadge } from '@/components/tickets/status-badge';
+import { Badge } from '@/components/ui/badge';
 import { TicketProperties } from '@/components/tickets/ticket-properties';
 import { UserAvatar } from '@/components/tickets/user-avatar';
 import type { CannedResponseOption } from '@/components/tickets/canned-response-picker';
@@ -80,6 +81,8 @@ type Props = {
         timezone: string | null;
         organization: { id: number; name: string } | null;
         created_at: string;
+        /** The requester's departments when they are an agent (internal requests); null for customers. */
+        departments: string[] | null;
     };
     requesterTickets?: Ticket[];
     activity?: Activity[];
@@ -345,14 +348,20 @@ export default function TicketShow({
                                 {ticket.number}
                             </span>
                             <span>·</span>
-                            <span>
-                                {t('via :channel', {
-                                    channel: t(
-                                        channelLabels[ticket.channel] ??
-                                            ticket.channel,
-                                    ),
-                                })}
-                            </span>
+                            {ticket.channel === 'internal' ? (
+                                <Badge variant="secondary">
+                                    {t('Internal request')}
+                                </Badge>
+                            ) : (
+                                <span>
+                                    {t('via :channel', {
+                                        channel: t(
+                                            channelLabels[ticket.channel] ??
+                                                ticket.channel,
+                                        ),
+                                    })}
+                                </span>
+                            )}
                             <span>·</span>
                             <span title={formatDateTime(ticket.created_at)}>
                                 {t('opened :time', {
@@ -606,9 +615,13 @@ function RequesterCard({ requester }: { requester: Props['requester'] }) {
                         </p>
                     )}
                     <p className="text-xs text-muted-foreground">
-                        {t('Customer since :year', {
-                            year: new Date(requester.created_at).getFullYear(),
-                        })}
+                        {requester.departments
+                            ? [t('Agent'), ...requester.departments].join(' · ')
+                            : t('Customer since :year', {
+                                  year: new Date(
+                                      requester.created_at,
+                                  ).getFullYear(),
+                              })}
                     </p>
                 </div>
             </div>

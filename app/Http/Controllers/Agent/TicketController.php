@@ -194,8 +194,13 @@ class TicketController extends Controller
         return to_route('agent.tickets.show', $ticket);
     }
 
-    public function show(Request $request, Ticket $ticket): Response
+    public function show(Request $request, Ticket $ticket): Response|RedirectResponse
     {
+        // The agent who asked for an internal request follows it like a customer.
+        if ($ticket->isRequestingSide($request->user())) {
+            return to_route('agent.requests.show', $ticket);
+        }
+
         $ticket->load([
             'requester.organization',
             'assignee',
@@ -230,6 +235,7 @@ class TicketController extends Controller
                 'timezone' => $ticket->requester->timezone,
                 'organization' => $ticket->requester->organization?->only(['id', 'name']),
                 'created_at' => $ticket->requester->created_at?->toIso8601String(),
+                'departments' => $ticket->requester->isStaff() ? $ticket->requester->groups()->orderBy('name')->pluck('name')->all() : null,
             ],
             'requesterTickets' => Inertia::defer(fn () => TicketResource::collection(
                 $ticket->requester->requestedTickets()->whereKeyNot($ticket->id)->latest()->limit(5)->get(),

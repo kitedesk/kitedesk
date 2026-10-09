@@ -43,6 +43,7 @@ class TicketReport
         public readonly ?int $groupId = null,
         public readonly ?int $categoryId = null,
         public readonly ?int $assigneeId = null,
+        public readonly ?TicketChannel $channel = null,
     ) {}
 
     /**
@@ -156,7 +157,7 @@ class TicketReport
     public function cached(): array
     {
         $key = 'reports:tickets:'.md5((string) json_encode([
-            $this->from->toDateString(), $this->to->toDateString(), $this->groupId, $this->categoryId, $this->assigneeId,
+            $this->from->toDateString(), $this->to->toDateString(), $this->groupId, $this->categoryId, $this->assigneeId, $this->channel?->value,
         ]));
 
         return Cache::remember($key, self::CACHE_SECONDS, fn (): array => $this->build());
@@ -275,6 +276,7 @@ class TicketReport
         return $query
             ->when($this->groupId !== null, fn (Builder $byGroup) => $byGroup->where('group_id', $this->groupId))
             ->when($this->assigneeId !== null, fn (Builder $byAgent) => $byAgent->where('assignee_id', $this->assigneeId))
+            ->when($this->channel !== null, fn (Builder $byChannel) => $byChannel->where('channel', $this->channel))
             ->when($this->categoryId !== null, fn (Builder $byCategory) => TicketFilters::category($byCategory, $this->categoryId));
     }
 

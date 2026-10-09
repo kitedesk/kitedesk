@@ -54,10 +54,10 @@ class SendTicketNotifications implements ShouldQueue
         $ticket = $message->ticket;
         $author = $message->author;
 
-        // Everyone on the customer side hears about public replies; a customer-side reply also alerts the assignee.
+        // Everyone on the requesting side hears about public replies; a reply from that side also alerts the assignee.
         $recipients = collect([$ticket->requester])
             ->merge($ticket->collaborators)
-            ->when($author?->isStaff() === false, fn ($recipients) => $recipients->push($ticket->assignee));
+            ->when($author !== null && $ticket->isRequestingSide($author), fn ($recipients) => $recipients->push($ticket->assignee));
 
         $recipients
             ->filter()

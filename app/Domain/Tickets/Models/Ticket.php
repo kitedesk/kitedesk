@@ -233,6 +233,24 @@ class Ticket extends Model
     }
 
     /**
+     * Whether the ticket is an internal request: an agent asking another department.
+     */
+    public function isInternal(): bool
+    {
+        return $this->channel === TicketChannel::Internal;
+    }
+
+    /**
+     * Whether the user is on the requesting side of the ticket: a customer, or the agent who
+     * asked for an internal request (and anyone copied on it). They see the public
+     * conversation only, and their replies are the ones the team answers.
+     */
+    public function isRequestingSide(User $user): bool
+    {
+        return $user->isCustomer() || ($this->isInternal() && $this->involves($user));
+    }
+
+    /**
      * Where customers hear about this ticket: its own channel (open ticket pages) and the
      * personal channel of the requester and everyone copied (their request lists).
      *

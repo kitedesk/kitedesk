@@ -3,6 +3,7 @@
 use App\Domain\Accounts\Models\Group;
 use App\Domain\Reports\TicketReport;
 use App\Domain\Sla\Models\SlaPolicy;
+use App\Domain\Tickets\Enums\TicketChannel;
 use App\Domain\Tickets\Enums\TicketStatus;
 use App\Domain\Tickets\Models\Ticket;
 use App\Models\User;
@@ -62,6 +63,22 @@ test('reports can be narrowed to a group', function () {
     expect($report['totals']['created'])->toBe(1)
         ->and($report['totals']['backlog'])->toBe(0)
         ->and($report['breakdowns']['group'])->toHaveCount(1);
+});
+
+test('reports can be narrowed to a channel, such as internal requests', function () {
+    Ticket::factory()->create(['channel' => TicketChannel::Internal, 'created_at' => '2026-10-12 09:00:00']);
+
+    $report = (new TicketReport(now()->subDays(6)->toImmutable(), now()->toImmutable(), channel: TicketChannel::Internal))->build();
+
+    expect($report['totals']['created'])->toBe(1)
+        ->and($report['breakdowns']['channel'])->toHaveCount(1)
+        ->and($report['breakdowns']['channel'][0]['label'])->toBe(__('Internal request'));
+
+    $this->actingAs($this->agent)
+        ->get(route('agent.reports.index', ['range' => '7', 'channel' => 'internal']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('filters.channel', 'internal')
+            ->where('report.totals.created', 1));
 });
 
 test('the median of an even count averages the middle values', function () {

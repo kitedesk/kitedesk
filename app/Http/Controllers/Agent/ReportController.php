@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Agent;
 
 use App\Domain\Accounts\Models\Group;
 use App\Domain\Reports\TicketReport;
+use App\Domain\Support\EnumOptions;
+use App\Domain\Tickets\Enums\TicketChannel;
 use App\Domain\Tickets\Support\SatisfactionSurvey;
 use App\Domain\Tickets\Support\TicketCatalog;
 use App\Http\Controllers\Controller;
@@ -26,6 +28,7 @@ class ReportController extends Controller
                 'groups' => Group::query()->orderBy('name')->get(['id', 'name']),
                 'categories' => TicketCatalog::categories(),
                 'agents' => User::query()->assignable()->orderBy('name')->get(['id', 'name']),
+                'channels' => EnumOptions::for(TicketChannel::class),
             ],
         ]);
     }

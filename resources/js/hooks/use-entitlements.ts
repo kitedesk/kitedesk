@@ -16,7 +16,8 @@ export type Feature =
     | 'webhooks'
     | 'reports'
     | 'custom_email_templates'
-    | 'widget';
+    | 'widget'
+    | 'internal_requests';
 
 export type Entitlements = {
     features: Record<Feature, boolean>;

@@ -76,6 +76,7 @@ final readonly class SatisfactionSurvey
     {
         return $this->enabled
             && $ticket->requester_id === $user->id
+            && $user->isCustomer()
             && self::isRateable($ticket);
     }
 

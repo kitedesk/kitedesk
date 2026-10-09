@@ -1875,5 +1875,20 @@
     "{{author.name}} replied to your request:": "{{author.name}} respondeu à sua solicitação:",
     "{{requester.name}} ({{requester.email}}) opened a new ticket:\n\n{{ticket.subject}}": "{{requester.name}} ({{requester.email}}) abriu um novo chamado:\n\n{{ticket.subject}}",
     "“:name” was created. Copy the token now — it won't be shown again.": "“:name” foi criado. Copie o token agora — ele não será exibido novamente.",
-    "⌘↵ to submit": "⌘↵ para enviar"
+    "⌘↵ to submit": "⌘↵ para enviar",
+    "Internal request": "Solicitação interna",
+    "What you asked other departments for, and their answers.": "O que você pediu a outros departamentos, e as respostas deles.",
+    "New internal request": "Nova solicitação interna",
+    "Need something from another department? Send them a request.": "Precisa de algo de outro departamento? Envie uma solicitação.",
+    "Sent to :group": "Enviada para :group",
+    "Ask another department for something. Their team answers here, and you follow it under My requests.": "Peça algo a outro departamento. A equipe dele responde aqui, e você acompanha em Minhas solicitações.",
+    "Department": "Departamento",
+    "Choose a department": "Escolha um departamento",
+    "Related ticket": "Chamado relacionado",
+    "Remove the related ticket": "Remover o chamado relacionado",
+    "Optional. Links the customer ticket this request is about.": "Opcional. Vincula o chamado do cliente ao qual esta solicitação se refere.",
+    "Send request": "Enviar solicitação",
+    "All channels": "Todos os canais",
+    "You can only link tickets you can see.": "Você só pode vincular chamados que consegue ver.",
+    "Request :number sent to :group.": "Solicitação :number enviada para :group."
 }

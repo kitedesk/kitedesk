@@ -35,11 +35,11 @@ class SendTicketEmails implements ShouldQueue
 
     private function ticketCreated(Ticket $ticket): void
     {
-        if ($this->isActive(EmailTemplateEvent::TicketReceived) && $ticket->channel !== TicketChannel::Agent && ! $this->recentlyAutoReplied($ticket)) {
+        if ($this->isActive(EmailTemplateEvent::TicketReceived) && ! in_array($ticket->channel, [TicketChannel::Agent, TicketChannel::Internal], true) && ! $this->recentlyAutoReplied($ticket)) {
             $this->send($ticket, EmailTemplateEvent::TicketReceived, collect([$ticket->requester]));
         }
 
-        // Tickets agents log themselves don't need to alert the team.
+        // Tickets agents log themselves don't need to alert the team; internal requests from another department do.
         if ($this->isActive(EmailTemplateEvent::AgentNewTicketAlert) && $ticket->channel !== TicketChannel::Agent) {
             $this->send($ticket, EmailTemplateEvent::AgentNewTicketAlert, $this->agentsFor($ticket));
         }
@@ -88,8 +88,11 @@ class SendTicketEmails implements ShouldQueue
      */
     private function agentsFor(Ticket $ticket): Collection
     {
-        return $ticket->group !== null
+        $agents = $ticket->group !== null
             ? $ticket->group->agents()->assignable()->get()
             : User::query()->assignable()->get();
+
+        // An agent asking their own department doesn't need to hear about their request.
+        return $agents->reject(fn (User $agent): bool => $agent->id === $ticket->requester_id);
     }
 }

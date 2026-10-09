@@ -43,11 +43,13 @@ class TicketPolicy
     {
         return $user->hasPermission(Permission::UpdateTickets)
             && $ticket->status !== TicketStatus::Closed
-            && $ticket->isVisibleTo($user);
+            && $ticket->isVisibleTo($user)
+            && ! $ticket->isRequestingSide($user);
     }
 
     /**
-     * Send a reply that the requester can see.
+     * Send a reply that the requester can see. The agent behind an internal request replies
+     * as its requester, like a customer.
      */
     public function reply(User $user, Ticket $ticket): bool
     {
@@ -55,7 +57,7 @@ class TicketPolicy
             return false;
         }
 
-        if ($user->isStaff()) {
+        if ($user->isStaff() && ! $ticket->isRequestingSide($user)) {
             return $user->hasPermission(Permission::ReplyToTickets) && $ticket->isVisibleTo($user);
         }
 
@@ -75,7 +77,7 @@ class TicketPolicy
      */
     public function addInternalNote(User $user, Ticket $ticket): bool
     {
-        return $user->isStaff() && $ticket->status !== TicketStatus::Closed && $ticket->isVisibleTo($user);
+        return $user->isStaff() && $ticket->status !== TicketStatus::Closed && $ticket->isVisibleTo($user) && ! $ticket->isRequestingSide($user);
     }
 
     /**
@@ -122,7 +124,7 @@ class TicketPolicy
      */
     public function useSecrets(User $user, Ticket $ticket): bool
     {
-        return $user->isStaff() && $user->hasPermission(Permission::UseSecrets) && $this->reply($user, $ticket);
+        return $user->isStaff() && $user->hasPermission(Permission::UseSecrets) && $this->reply($user, $ticket) && ! $ticket->isRequestingSide($user);
     }
 
     /**
@@ -134,11 +136,12 @@ class TicketPolicy
         return $user->isStaff()
             && $user->hasPermission(Permission::UseAi)
             && AiSettings::current()->isAvailable()
-            && $this->view($user, $ticket);
+            && $this->view($user, $ticket)
+            && ! $ticket->isRequestingSide($user);
     }
 
     public function delete(User $user, Ticket $ticket): bool
     {
-        return $user->hasPermission(Permission::DeleteTickets) && $ticket->isVisibleTo($user);
+        return $user->hasPermission(Permission::DeleteTickets) && $ticket->isVisibleTo($user) && ! $ticket->isRequestingSide($user);
     }
 }

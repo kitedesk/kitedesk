@@ -21,14 +21,17 @@ class TicketMessageController extends ApiController
      * List a ticket's messages.
      *
      * Includes internal notes (flagged with `is_internal`), oldest first, paginated
-     * (`per_page` up to 100, default 50).
+     * (`per_page` up to 100, default 50). The requester of an internal request only gets the
+     * public conversation.
      */
     public function index(Request $request, Ticket $ticket): AnonymousResourceCollection
     {
         Gate::authorize('view', $ticket);
 
         return MessageResource::collection(
-            $ticket->messages()->oldest()->oldest('id')->with(['author', 'media'])
+            $ticket->messages()
+                ->when($ticket->isRequestingSide($request->user()), fn ($messages) => $messages->public())
+                ->oldest()->oldest('id')->with(['author', 'media'])
                 ->paginate($this->perPage($request, 50))
                 ->withQueryString(),
         );

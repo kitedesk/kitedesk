@@ -9,6 +9,7 @@ enum TicketChannel: string
     case Api = 'api';
     case Email = 'email';
     case Widget = 'widget';
+    case Internal = 'internal';
 
     public function label(): string
     {
@@ -18,6 +19,7 @@ enum TicketChannel: string
             self::Api => __('API'),
             self::Email => __('Email'),
             self::Widget => __('Website widget'),
+            self::Internal => __('Internal request'),
         };
     }
 }

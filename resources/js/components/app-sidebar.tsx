@@ -9,6 +9,7 @@ import {
     Layers,
     MessageSquareText,
     PlusCircle,
+    Send,
     Settings2,
     UserRound,
     UsersRound,
@@ -33,6 +34,7 @@ import { usePermissions } from '@/hooks/use-permissions';
 import { useTranslation } from '@/hooks/use-translation';
 import { index as cannedResponses } from '@/routes/agent/canned-responses';
 import { index as reports } from '@/routes/agent/reports';
+import { index as requests } from '@/routes/agent/requests';
 import { create, index } from '@/routes/agent/tickets';
 import { statusColors } from '@/lib/tickets';
 import { cn } from '@/lib/utils';
@@ -152,6 +154,22 @@ export function AppSidebar() {
                 {agentNav && (
                     <SidebarGroup className="px-2 py-0">
                         <SidebarMenu>
+                            {includes('internal_requests') && (
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton
+                                        asChild
+                                        isActive={url.pathname.startsWith(
+                                            requests.url(),
+                                        )}
+                                        tooltip={{ children: t('My requests') }}
+                                    >
+                                        <Link href={requests()} prefetch>
+                                            <Send />
+                                            <span>{t('My requests')}</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                            )}
                             <SidebarMenuItem>
                                 <SidebarMenuButton
                                     asChild

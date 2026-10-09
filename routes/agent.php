@@ -4,6 +4,7 @@ use App\Http\Controllers\Agent\AvailabilityController;
 use App\Http\Controllers\Agent\BoardPreferencesController;
 use App\Http\Controllers\Agent\BulkTicketController;
 use App\Http\Controllers\Agent\CannedResponseController;
+use App\Http\Controllers\Agent\InternalRequestController;
 use App\Http\Controllers\Agent\NotificationController;
 use App\Http\Controllers\Agent\ReportController;
 use App\Http\Controllers\Agent\SavedViewController;
@@ -53,6 +54,18 @@ Route::prefix('agent')
                 Route::post('draft', [TicketAiController::class, 'draft'])->name('draft');
                 Route::post('improve', [TicketAiController::class, 'improve'])->name('improve');
             });
+        });
+
+        // Requests an agent opens for another department. Opening new ones comes with the plan;
+        // following and answering existing ones never stops.
+        Route::get('requests', [InternalRequestController::class, 'index'])->name('requests.index');
+        Route::middleware('entitlement:internal_requests')->group(function () {
+            Route::get('requests/create', [InternalRequestController::class, 'create'])->name('requests.create');
+            Route::post('requests', [InternalRequestController::class, 'store'])->name('requests.store');
+        });
+        Route::middleware('can:view,ticket')->group(function () {
+            Route::get('requests/{ticket}', [InternalRequestController::class, 'show'])->name('requests.show');
+            Route::post('requests/{ticket}/replies', [InternalRequestController::class, 'reply'])->name('requests.replies.store');
         });
 
         Route::post('secrets/{secret}/reveal', [TicketSecretController::class, 'reveal'])->middleware('throttle:30,1')->name('secrets.reveal');

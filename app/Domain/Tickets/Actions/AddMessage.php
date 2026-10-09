@@ -43,7 +43,7 @@ class AddMessage
         return DB::transaction(function () use ($ticket, $author, $body, $isInternal, $channel, $attachments, $statusAfter, $metadata, $secretTokens): TicketMessage {
             $message = $ticket->messages()->create([
                 'author_id' => $author?->id,
-                'body' => RichText::sanitize($body, keepMentions: $isInternal && $this->isStaff($author)),
+                'body' => RichText::sanitize($body, keepMentions: $isInternal && ($author === null || $author->isStaff())),
                 'is_internal' => $isInternal,
                 'channel' => $channel,
                 'metadata' => $metadata === [] ? null : $metadata,
@@ -60,7 +60,7 @@ class AddMessage
             $ticket->loadMissing('slaPolicy.businessSchedule.holidays');
 
             if (! $isInternal) {
-                $this->isStaff($author)
+                $this->isTeamSide($ticket, $author)
                     ? $this->recordStaffReply($ticket)
                     : $this->recordCustomerReply($ticket);
             }
@@ -94,9 +94,13 @@ class AddMessage
         $this->sla->recordCustomerReply($ticket);
     }
 
-    private function isStaff(?User $author): bool
+    /**
+     * Whether the author answers for the team: staff (or the system), unless they asked for
+     * the ticket themselves as an internal request.
+     */
+    private function isTeamSide(Ticket $ticket, ?User $author): bool
     {
-        return $author === null || $author->isStaff();
+        return $author === null || ! $ticket->isRequestingSide($author);
     }
 
     private function defaultStatusAfter(Ticket $ticket, ?User $author, bool $isInternal): ?TicketStatus
@@ -105,7 +109,7 @@ class AddMessage
             return null;
         }
 
-        if ($this->isStaff($author)) {
+        if ($this->isTeamSide($ticket, $author)) {
             return $ticket->status === TicketStatus::New ? TicketStatus::Open : null;
         }
 

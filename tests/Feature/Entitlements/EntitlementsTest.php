@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Accounts\Models\Group;
 use App\Domain\Accounts\Models\Role;
 use App\Domain\Accounts\Support\RoleCatalog;
 use App\Domain\Ai\Support\AiSettings;
@@ -11,6 +12,7 @@ use App\Domain\Mail\Models\EmailTemplate;
 use App\Domain\Mail\Models\Mailbox;
 use App\Domain\Sla\Models\SlaPolicy;
 use App\Domain\Sla\SlaTracker;
+use App\Domain\Tickets\Enums\TicketChannel;
 use App\Domain\Tickets\Events\TicketCreated;
 use App\Domain\Tickets\Models\Ticket;
 use App\Domain\Tickets\Models\TicketField;
@@ -238,4 +240,17 @@ test('the website widget disappears from websites when the plan leaves it out', 
     $this->get(route('widget.script'))->assertNotFound();
     $this->get(route('widget.frame'))->assertNotFound();
     $this->actingAs($this->admin)->get(route('admin.widget.edit'))->assertForbidden();
+});
+
+test('a plan without internal requests stops new ones but keeps existing ones open to their requester', function () {
+    $agent = User::factory()->agent()->create();
+    $ticket = Ticket::factory()->create(['channel' => TicketChannel::Internal, 'requester_id' => $agent->id]);
+    plan(without: [Feature::InternalRequests]);
+
+    $this->actingAs($agent)->get(route('agent.requests.create'))->assertForbidden();
+    $this->actingAs($agent)->post(route('agent.requests.store'), ['group_id' => Group::factory()->create()->id, 'subject' => 'Hi', 'body' => '<p>Hi</p>'])->assertForbidden();
+
+    $this->actingAs($agent)->get(route('agent.requests.index'))->assertOk();
+    $this->actingAs($agent)->get(route('agent.requests.show', $ticket))->assertOk();
+    $this->actingAs($agent)->post(route('agent.requests.replies.store', $ticket), ['body' => '<p>Still there?</p>'])->assertSessionHasNoErrors();
 });
