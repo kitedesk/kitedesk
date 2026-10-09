@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Settings;
 
+use App\Domain\Support\DefaultLanguage;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\ProfileDeleteRequest;
 use App\Http\Requests\Settings\ProfileUpdateRequest;
@@ -27,7 +28,7 @@ class ProfileController extends Controller
             'status' => $request->session()->get('status'),
             'profile' => $user->only(['job_title', 'phone', 'timezone', 'locale', 'signature']),
             'locales' => config('kitedesk.locales'),
-            'defaultLocale' => config('kitedesk.locales.'.config('app.locale'), config('app.locale')),
+            'defaultLocale' => DefaultLanguage::label(),
             'timezones' => DateTimeZone::listIdentifiers(),
         ]);
     }

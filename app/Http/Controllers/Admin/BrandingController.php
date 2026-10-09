@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Domain\Branding\BrandAssets;
 use App\Domain\Branding\Branding;
+use App\Domain\Support\DefaultLanguage;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\SaveBrandingRequest;
 use Illuminate\Http\RedirectResponse;
@@ -11,7 +12,7 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * The installation's name, logo, colors, email look and help center text.
+ * The installation's name, language, logo, colors, email look and help center text.
  */
 class BrandingController extends Controller
 {
@@ -31,7 +32,9 @@ class BrandingController extends Controller
                 'portal_footer' => $branding->portalFooter,
                 'show_powered_by' => $branding->showPoweredBy,
                 'custom_css' => $branding->customCss,
+                'locale' => DefaultLanguage::current(),
             ],
+            'locales' => config('kitedesk.locales'),
             'assets' => [
                 'logo' => $branding->logoUrl(),
                 'logo_dark' => $branding->logoDarkUrl(),
@@ -67,6 +70,10 @@ class BrandingController extends Controller
             showPoweredBy: $request->boolean('show_powered_by', true),
             customCss: Branding::cleanCss($text('custom_css')),
         ))->save();
+
+        if ($request->filled('locale')) {
+            DefaultLanguage::save($request->string('locale')->toString());
+        }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Branding updated.')]);
 

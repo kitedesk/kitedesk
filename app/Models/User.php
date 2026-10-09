@@ -12,6 +12,7 @@ use App\Domain\Accounts\Support\PermissionDefinition;
 use App\Domain\Accounts\Support\PermissionRegistry;
 use App\Domain\Accounts\Support\RoleCatalog;
 use App\Domain\Accounts\Support\UserAvatars;
+use App\Domain\Support\DefaultLanguage;
 use App\Domain\Tickets\Models\SavedView;
 use App\Domain\Tickets\Models\Ticket;
 use Database\Factories\UserFactory;
@@ -203,11 +204,12 @@ class User extends Authenticatable implements HasLocalePreference, MustVerifyEma
     }
 
     /**
-     * The language chosen in the profile, used for the interface and the emails they get.
+     * The language for the interface and the emails they get: the one chosen in the profile,
+     * or the installation's default.
      */
-    public function preferredLocale(): ?string
+    public function preferredLocale(): string
     {
-        return $this->locale !== null && array_key_exists($this->locale, config('kitedesk.locales', [])) ? $this->locale : null;
+        return $this->locale !== null && DefaultLanguage::isAvailable($this->locale) ? $this->locale : DefaultLanguage::current();
     }
 
     /**

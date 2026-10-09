@@ -8,7 +8,8 @@ return [
     |--------------------------------------------------------------------------
     |
     | The languages people can pick for themselves in their profile. Without a
-    | choice, the installation language (APP_LOCALE) is used. Each one needs a
+    | choice, the default language chosen in the admin center is used, and
+    | until an admin picks one, "default_locale". Each one needs a
     | translation file in lang/.
     |
     */
@@ -17,6 +18,8 @@ return [
         'en' => 'English',
         'pt_BR' => 'Português (Brasil)',
     ],
+
+    'default_locale' => env('APP_LOCALE', 'en'),
 
     /*
     |--------------------------------------------------------------------------

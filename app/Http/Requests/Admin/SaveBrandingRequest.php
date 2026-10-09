@@ -7,6 +7,7 @@ use App\Domain\Entitlements\Enums\Feature;
 use App\Domain\Entitlements\Support\PlanLimits;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class SaveBrandingRequest extends FormRequest
 {
@@ -19,6 +20,7 @@ class SaveBrandingRequest extends FormRequest
 
         return [
             'name' => ['required', 'string', 'max:60'],
+            'locale' => ['sometimes', 'required', 'string', Rule::in(array_keys(config('kitedesk.locales', [])))],
             'primary_color' => ['nullable', 'string', 'regex:/^#[0-9a-f]{6}$/i'],
             'logo' => $logo,
             'logo_dark' => $logo,

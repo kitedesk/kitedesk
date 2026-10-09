@@ -112,7 +112,7 @@ class UserController extends Controller
                 'job_title' => $user->job_title,
                 'phone' => $user->phone,
                 'timezone' => $user->timezone,
-                'locale' => $user->preferredLocale() !== null ? config('kitedesk.locales.'.$user->preferredLocale()) : null,
+                'locale' => $user->locale !== null ? config('kitedesk.locales.'.$user->locale) : null,
                 'is_available' => $user->is_available,
                 'email_verified' => $user->email_verified_at !== null,
                 'invited' => $user->last_login_at === null,

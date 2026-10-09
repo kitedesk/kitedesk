@@ -99,7 +99,7 @@ class HandleInertiaRequests extends Middleware
     }
 
     /**
-     * The installation language's JSON strings (APP_LOCALE), plus those of KiteDesk packages,
+     * The request language's JSON strings, plus those of KiteDesk packages,
      * sent once and remembered by the client until a translation file changes. Keys are the
      * English text, so an English installation sends nothing.
      */

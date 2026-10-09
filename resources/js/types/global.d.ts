@@ -17,7 +17,7 @@ declare module '@inertiajs/core' {
             auth: Auth;
             sidebarOpen: boolean;
             agentNav: AgentNav;
-            /** The installation language (APP_LOCALE), e.g. "en" or "pt_BR". */
+            /** The language of this request, e.g. "en" or "pt_BR". */
             locale: string;
             /** JSON translation strings for that language (English keys). */
             translations: Record<string, string>;

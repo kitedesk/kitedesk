@@ -10,6 +10,13 @@ import { ActiveSwitch } from '@/components/sla/active-switch';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { useEntitlements } from '@/hooks/use-entitlements';
 import { useTranslation } from '@/hooks/use-translation';
 import {
@@ -32,6 +39,7 @@ type Settings = {
     portal_footer: string | null;
     show_powered_by: boolean;
     custom_css: string | null;
+    locale: string;
 };
 
 type Assets = {
@@ -50,10 +58,12 @@ const MAX_HEADER_LINKS = 5;
 export default function Branding({
     settings,
     assets,
+    locales,
     defaultSenderName,
 }: {
     settings: Settings;
     assets: Assets;
+    locales: Record<string, string>;
     defaultSenderName: string;
 }) {
     const { t } = useTranslation();
@@ -69,6 +79,7 @@ export default function Branding({
         portal_footer: settings.portal_footer ?? '',
         show_powered_by: settings.show_powered_by,
         custom_css: settings.custom_css ?? '',
+        locale: settings.locale,
         logo: null as File | null,
         logo_dark: null as File | null,
         favicon: null as File | null,
@@ -138,14 +149,49 @@ export default function Branding({
                         'Shown in the browser tab, the sidebar, sign-in pages and the help center.',
                     )}
                 >
-                    <TextField
-                        id="brand-name"
-                        label={t('Name')}
-                        value={form.data.name}
-                        onChange={(name) => form.setData('name', name)}
-                        error={errors.name}
-                        required
-                    />
+                    <div className="grid items-start gap-4 sm:grid-cols-2">
+                        <TextField
+                            id="brand-name"
+                            label={t('Name')}
+                            value={form.data.name}
+                            onChange={(name) => form.setData('name', name)}
+                            error={errors.name}
+                            required
+                        />
+                        <div className="grid gap-2">
+                            <Label htmlFor="brand-locale">
+                                {t('Default language')}
+                            </Label>
+                            <Select
+                                value={form.data.locale}
+                                onValueChange={(locale) =>
+                                    form.setData('locale', locale)
+                                }
+                            >
+                                <SelectTrigger
+                                    id="brand-locale"
+                                    className="w-full"
+                                >
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {Object.entries(locales).map(
+                                        ([code, label]) => (
+                                            <SelectItem key={code} value={code}>
+                                                {label}
+                                            </SelectItem>
+                                        ),
+                                    )}
+                                </SelectContent>
+                            </Select>
+                            <p className="text-xs text-muted-foreground">
+                                {t(
+                                    'For the interface and emails of everyone who hasn’t picked a language in their profile.',
+                                )}
+                            </p>
+                            <InputError message={errors.locale} />
+                        </div>
+                    </div>
                     <div className="grid gap-4 sm:grid-cols-2">
                         <AssetField
                             id="brand-logo"

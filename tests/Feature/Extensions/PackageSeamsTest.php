@@ -62,7 +62,7 @@ test('a permission added by a package later is given to the existing agent role'
 });
 
 test('package translations are sent with the installation language', function () {
-    app()->setLocale('pt_BR');
+    config(['kitedesk.default_locale' => 'pt_BR']);
 
     $this->get(route('help.index'))
         ->assertInertia(fn (Assert $page) => $page
