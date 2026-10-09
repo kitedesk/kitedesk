@@ -14,9 +14,21 @@ import { configureEcho } from '@laravel/echo-react';
 // First-party KiteDesk packages register their navigation and other hooks here.
 import.meta.glob('/vendor/kitedesk/*/resources/js/index.ts', { eager: true });
 
-configureEcho({
-    broadcaster: 'reverb',
-});
+// Reverb settings come from the server at runtime, so a prebuilt image works anywhere. Without
+// them Echo does nothing, rather than failing on every signed-in page.
+const realtime = JSON.parse(
+    document.getElementById('realtime-options')?.textContent || 'null',
+) as {
+    key: string;
+    wsHost: string;
+    wsPort: number;
+    wssPort: number;
+    forceTLS: boolean;
+} | null;
+
+configureEcho(
+    realtime ? { broadcaster: 'reverb', ...realtime } : { broadcaster: 'null' },
+);
 
 // The brand name can change in the admin center, so it comes from the page rather than the build.
 let appName =

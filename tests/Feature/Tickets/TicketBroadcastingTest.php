@@ -123,3 +123,16 @@ test('ratings, SLA breaches and merges refresh open pages', function () {
         && ! in_array('private-kitedesk.tickets.'.$overdue->id, channelNames($event), true));
     Event::assertDispatchedTimes(TicketRefreshed::class, 3);
 });
+
+test('pages tell the browser how to reach Reverb, or that live updates are off', function () {
+    $this->actingAs($this->agent)->get(route('agent.tickets.index'))->assertSee('<script id="realtime-options" type="application/json">null</script>', false);
+
+    config([
+        'broadcasting.default' => 'reverb',
+        'broadcasting.connections.reverb.key' => 'public-key',
+        'broadcasting.connections.reverb.options' => ['host' => 'ws.example.com', 'port' => 443, 'scheme' => 'https'],
+    ]);
+
+    $this->actingAs($this->agent)->get(route('agent.tickets.index'))
+        ->assertSee('{"key":"public-key","wsHost":"ws.example.com","wsPort":443,"wssPort":443,"forceTLS":true}', false);
+});

@@ -40,6 +40,7 @@
             <link rel="apple-touch-icon" href="/apple-touch-icon.png">
         @endif
         <meta name="application-name" content="{{ $branding->name() }}">
+        <script id="realtime-options" type="application/json">@json(\App\Domain\Support\Broadcasting\Realtime::clientOptions())</script>
 
         @fonts
 
