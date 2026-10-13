@@ -5,7 +5,10 @@ namespace App\Providers;
 use App\Domain\Accounts\Enums\Permission;
 use App\Domain\Accounts\Listeners\RecordLastLogin;
 use App\Domain\Accounts\Models\Group;
+use App\Domain\Accounts\Support\PasswordPolicy;
 use App\Domain\Accounts\Support\PermissionRegistry;
+use App\Domain\Audit\AuditLog;
+use App\Domain\Audit\Listeners\RecordAuthEvent;
 use App\Domain\Branding\Branding;
 use App\Domain\Entitlements\Contracts\Entitlements;
 use App\Domain\Entitlements\UnlimitedEntitlements;
@@ -69,13 +72,17 @@ class AppServiceProvider extends ServiceProvider
         User::deleted(fn (User $user) => WorkflowReferences::deleted('user', $user->id, $user->name));
         TicketCategory::deleted(fn (TicketCategory $category) => WorkflowReferences::deleted('category', $category->id, $category->name));
 
-        // Changes made by a workflow are credited to it in the ticket's activity.
         Activity::creating(function (Activity $activity): void {
+            $properties = collect($activity->properties ?? []);
+
+            // Changes made by a workflow are credited to it in the ticket's activity.
             $workflow = app(WorkflowOrigin::class)->workflowName();
 
             if ($workflow !== null) {
-                $activity->properties = collect($activity->properties ?? [])->put('workflow', $workflow);
+                $properties->put('workflow', $workflow);
             }
+
+            AuditLog::prepare($activity, $properties, request());
         });
 
         $this->configureOAuth();
@@ -117,6 +124,7 @@ class AppServiceProvider extends ServiceProvider
     protected function registerDomainListeners(): void
     {
         Event::listen(Login::class, RecordLastLogin::class);
+        Event::listen(array_keys(RecordAuthEvent::EVENTS), RecordAuthEvent::class);
         Event::listen([TicketCreated::class, TicketUpdated::class, MessageCreated::class], QueueWebhookDeliveries::class);
         Event::listen([TicketCreated::class, TicketUpdated::class, MessageCreated::class], SendTicketNotifications::class);
         Event::listen([TicketCreated::class, TicketUpdated::class], SendTicketEmails::class);
@@ -134,14 +142,6 @@ class AppServiceProvider extends ServiceProvider
             app()->isProduction(),
         );
 
-        Password::defaults(fn (): ?Password => app()->isProduction()
-            ? Password::min(12)
-                ->mixedCase()
-                ->letters()
-                ->numbers()
-                ->symbols()
-                ->uncompromised()
-            : null,
-        );
+        Password::defaults(fn (): Password => PasswordPolicy::current()->rule());
     }
 }

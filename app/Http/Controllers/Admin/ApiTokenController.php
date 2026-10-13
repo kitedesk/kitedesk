@@ -59,7 +59,11 @@ class ApiTokenController extends Controller
 
     public function destroy(PersonalAccessToken $apiToken): RedirectResponse
     {
+        $owner = $apiToken->tokenable;
         $apiToken->delete();
+
+        $activity = activity()->useLog('auth')->withProperties(['token' => $apiToken->name])->event('token_revoked');
+        ($owner instanceof User ? $activity->performedOn($owner) : $activity)->log('token_revoked');
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Token revoked.')]);
 

@@ -52,6 +52,8 @@ class ApiTokenController extends Controller
 
         $apiToken->delete();
 
+        activity()->useLog('auth')->performedOn($request->user())->withProperties(['token' => $apiToken->name])->event('token_revoked')->log('token_revoked');
+
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Token revoked.')]);
 
         return to_route('api-tokens.index');

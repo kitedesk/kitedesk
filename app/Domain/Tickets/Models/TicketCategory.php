@@ -2,6 +2,7 @@
 
 namespace App\Domain\Tickets\Models;
 
+use App\Domain\Audit\Concerns\Auditable;
 use Carbon\CarbonImmutable;
 use Database\Factories\TicketCategoryFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -37,7 +38,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class TicketCategory extends Model
 {
     /** @use HasFactory<TicketCategoryFactory> */
-    use HasFactory;
+    use Auditable, HasFactory;
 
     /**
      * @return BelongsTo<TicketCategory, $this>

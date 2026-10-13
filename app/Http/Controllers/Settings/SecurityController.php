@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Settings;
 
+use App\Domain\Accounts\Actions\ChangePassword;
+use App\Domain\Accounts\Support\PasswordPolicy;
 use App\Domain\Accounts\Support\UserSessions;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\PasswordUpdateRequest;
@@ -19,6 +21,8 @@ class SecurityController extends Controller
      */
     public function edit(TwoFactorAuthenticationRequest $request): Response
     {
+        $policy = PasswordPolicy::current();
+
         $props = [
             'canManageTwoFactor' => Features::canManageTwoFactorAuthentication(),
             'canManagePasskeys' => Features::canManagePasskeys(),
@@ -40,6 +44,8 @@ class SecurityController extends Controller
                 : [],
             'passwordRules' => Password::defaults()->toPasswordRulesString(),
             'sessions' => UserSessions::for($request->user(), $request->session()->getId()),
+            'passwordExpiresAt' => $policy->expiresAt($request->user())?->toIso8601String(),
+            'twoFactorRequired' => $policy->requiresTwoFactor($request->user()),
         ];
 
         if (Features::canManageTwoFactorAuthentication()) {
@@ -55,11 +61,9 @@ class SecurityController extends Controller
     /**
      * Update the user's password.
      */
-    public function update(PasswordUpdateRequest $request): RedirectResponse
+    public function update(PasswordUpdateRequest $request, ChangePassword $changePassword): RedirectResponse
     {
-        $request->user()->update([
-            'password' => $request->password,
-        ]);
+        $changePassword->handle($request->user(), $request->string('password')->toString(), $request->user());
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Password updated.')]);
 

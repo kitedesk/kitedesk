@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\AddSecurityHeaders;
+use App\Http\Middleware\EnsureAccountIsSecure;
 use App\Http\Middleware\EnsureApiAbility;
 use App\Http\Middleware\EnsureCanAccessAdmin;
 use App\Http\Middleware\EnsureFeatureEntitled;
@@ -42,6 +43,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             ThrottleAccountForms::class,
             EnsureUserIsActive::class,
+            EnsureAccountIsSecure::class,
             SetUserLocale::class,
             HandleAppearance::class,
             HandleInertiaRequests::class,

@@ -2,6 +2,7 @@
 
 namespace App\Domain\Webhooks\Models;
 
+use App\Domain\Audit\Concerns\Auditable;
 use App\Domain\Webhooks\Enums\WebhookEvent;
 use Carbon\CarbonImmutable;
 use Database\Factories\WebhookFactory;
@@ -32,7 +33,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Webhook extends Model
 {
     /** @use HasFactory<WebhookFactory> */
-    use HasFactory;
+    use Auditable, HasFactory;
 
     /**
      * @return HasMany<WebhookDelivery, $this>

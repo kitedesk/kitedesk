@@ -3,6 +3,7 @@
 namespace App\Actions\Fortify;
 
 use App\Concerns\PasswordValidationRules;
+use App\Domain\Accounts\Actions\ChangePassword;
 use App\Models\User;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Validator as ValidationValidator;
@@ -20,15 +21,13 @@ class ResetUserPassword implements ResetsUserPasswords
     public function reset(User $user, array $input): void
     {
         Validator::make($input, [
-            'password' => $this->passwordRules(),
+            'password' => $this->passwordRules($user),
         ])->after(function (ValidationValidator $validator) use ($user): void {
             if ($user->isDeactivated()) {
                 $validator->errors()->add('email', __('This account has been deactivated.'));
             }
         })->validate();
 
-        $user->forceFill([
-            'password' => $input['password'],
-        ])->save();
+        app(ChangePassword::class)->handle($user, $input['password']);
     }
 }

@@ -6,6 +6,7 @@ use App\Http\Controllers\Settings\BrowserSessionController;
 use App\Http\Controllers\Settings\ConnectedAppController;
 use App\Http\Controllers\Settings\ProfileAvatarController;
 use App\Http\Controllers\Settings\ProfileController;
+use App\Http\Controllers\Settings\RequiredPasswordController;
 use App\Http\Controllers\Settings\SecurityController;
 use Illuminate\Auth\Middleware\RequirePassword;
 use Illuminate\Support\Facades\Route;
@@ -17,6 +18,11 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('settings/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::post('settings/profile/avatar', [ProfileAvatarController::class, 'update'])->name('profile.avatar.update');
     Route::delete('settings/profile/avatar', [ProfileAvatarController::class, 'destroy'])->name('profile.avatar.destroy');
+
+    Route::get('settings/password/new', [RequiredPasswordController::class, 'edit'])->name('password.change');
+    Route::put('settings/password/new', [RequiredPasswordController::class, 'update'])
+        ->middleware('throttle:6,1')
+        ->name('password.change.update');
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {

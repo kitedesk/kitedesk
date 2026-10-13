@@ -45,4 +45,7 @@ enum Feature: string
 
     /** Internal requests: tickets agents open for another department. */
     case InternalRequests = 'internal_requests';
+
+    /** Viewing and exporting the audit log. Activity is recorded either way. */
+    case AuditLog = 'audit_log';
 }

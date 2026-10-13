@@ -2,6 +2,7 @@
 
 namespace App\Domain\Mail\Models;
 
+use App\Domain\Audit\Concerns\Auditable;
 use App\Domain\Entitlements\Enums\Feature;
 use App\Domain\Entitlements\Support\PlanLimits;
 use App\Domain\Mail\Enums\EmailTemplateEvent;
@@ -23,6 +24,8 @@ use Illuminate\Database\Eloquent\Model;
 #[Fillable(['event', 'subject', 'body', 'is_active'])]
 class EmailTemplate extends Model
 {
+    use Auditable;
+
     /**
      * The saved template for the event, or an unsaved one holding the defaults. While the plan
      * leaves custom wording out, only whether the email is sent is taken from the saved one.

@@ -11,8 +11,8 @@ use Illuminate\Support\Facades\DB;
 use Spatie\Activitylog\Models\Activity;
 
 /**
- * Permanently removes a ticket with its messages, attachments and history. Tickets merged
- * into it keep existing and simply lose the link.
+ * Permanently removes a ticket with its messages, attachments and history; only the deletion
+ * itself stays, in the audit log. Tickets merged into it keep existing and simply lose the link.
  */
 class DeleteTicket
 {
@@ -28,6 +28,9 @@ class DeleteTicket
             Activity::query()->forSubject($ticket)->delete();
 
             $ticket->delete();
+
+            // Its history goes with it; the deletion itself stays in the audit log.
+            activity()->useLog('tickets')->withProperties(['ticket' => $ticket->reference(), 'subject' => $ticket->subject])->event('ticket_deleted')->log('ticket_deleted');
         });
 
         if ($data !== null) {

@@ -2,6 +2,7 @@
 
 namespace App\Domain\Sla\Models;
 
+use App\Domain\Audit\Concerns\Auditable;
 use App\Domain\Tickets\Enums\TicketPriority;
 use App\Domain\Tickets\Models\Ticket;
 use Carbon\CarbonImmutable;
@@ -39,7 +40,7 @@ use Illuminate\Support\Facades\Cache;
 class SlaPolicy extends Model
 {
     /** @use HasFactory<SlaPolicyFactory> */
-    use HasFactory;
+    use Auditable, HasFactory;
 
     private const string EVALUATION_CACHE_KEY = 'sla:policies';
 

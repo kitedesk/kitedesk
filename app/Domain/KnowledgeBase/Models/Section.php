@@ -2,6 +2,7 @@
 
 namespace App\Domain\KnowledgeBase\Models;
 
+use App\Domain\Audit\Concerns\Auditable;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Table;
@@ -26,6 +27,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Table('kb_sections')]
 class Section extends Model
 {
+    use Auditable;
+
     /**
      * @return BelongsTo<Category, $this>
      */

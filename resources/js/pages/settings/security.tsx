@@ -1,4 +1,5 @@
 import { Form, Head } from '@inertiajs/react';
+import { ShieldAlert } from 'lucide-react';
 import { useRef } from 'react';
 import SecurityController from '@/actions/App/Http/Controllers/Settings/SecurityController';
 import BrowserSessions from '@/components/browser-sessions';
@@ -7,6 +8,7 @@ import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
 import { useTranslation } from '@/hooks/use-translation';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { edit } from '@/routes/security';
@@ -19,13 +21,15 @@ import ManageTwoFactor from '@/components/manage-two-factor';
 type Props = {
     passwordRules: string;
     sessions: BrowserSession[];
+    passwordExpiresAt: string | null;
+    twoFactorRequired: boolean;
 } & ManagePasskeysProps &
     ManageTwoFactorProps;
 
 export default function Security(props: Props) {
     const passwordInput = useRef<HTMLInputElement>(null);
     const currentPasswordInput = useRef<HTMLInputElement>(null);
-    const { t } = useTranslation();
+    const { t, localeTag } = useTranslation();
 
     return (
         <>
@@ -33,13 +37,38 @@ export default function Security(props: Props) {
 
             <h1 className="sr-only">{t('Security settings')}</h1>
 
+            {props.twoFactorRequired && (
+                <Alert>
+                    <ShieldAlert />
+                    <AlertTitle>
+                        {t('Two-factor authentication is required')}
+                    </AlertTitle>
+                    <AlertDescription>
+                        {t(
+                            'Your help desk requires two-factor authentication for the team. Turn it on or add a passkey below to continue.',
+                        )}
+                    </AlertDescription>
+                </Alert>
+            )}
+
             <div className="space-y-6">
                 <Heading
                     variant="small"
                     title={t('Update password')}
-                    description={t(
-                        'Ensure your account is using a long, random password to stay secure',
-                    )}
+                    description={
+                        props.passwordExpiresAt
+                            ? t(
+                                  'Your password expires on :date. Choose a long, random one to stay secure.',
+                                  {
+                                      date: new Date(
+                                          props.passwordExpiresAt,
+                                      ).toLocaleDateString(localeTag),
+                                  },
+                              )
+                            : t(
+                                  'Ensure your account is using a long, random password to stay secure',
+                              )
+                    }
                 />
 
                 <Form

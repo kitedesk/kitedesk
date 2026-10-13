@@ -13,6 +13,8 @@ Route::middleware('permission:admin.team')->group(function () {
     Route::post('users/{user}/reactivate', [UserController::class, 'reactivate'])->name('users.reactivate');
     Route::delete('users/{user}/sessions', [UserController::class, 'destroySessions'])->name('users.sessions.destroy');
     Route::delete('users/{user}/two-factor', [UserController::class, 'resetTwoFactor'])->name('users.two-factor.destroy');
+    Route::put('users/{user}/password', [UserController::class, 'updatePassword'])->name('users.password.update');
+    Route::post('users/{user}/password/require-change', [UserController::class, 'requirePasswordChange'])->name('users.password.require-change');
 
     Route::resource('roles', RoleController::class)->only(['index', 'edit', 'update', 'destroy']);
     Route::resource('roles', RoleController::class)->only(['create', 'store'])->middleware('entitlement:custom_roles');

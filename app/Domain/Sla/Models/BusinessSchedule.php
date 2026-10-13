@@ -2,6 +2,7 @@
 
 namespace App\Domain\Sla\Models;
 
+use App\Domain\Audit\Concerns\Auditable;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Collection;
@@ -25,6 +26,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Fillable(['name', 'timezone', 'hours'])]
 class BusinessSchedule extends Model
 {
+    use Auditable;
+
     protected static function booted(): void
     {
         static::saved(fn () => SlaPolicy::forgetEvaluationCache());

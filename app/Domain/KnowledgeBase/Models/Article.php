@@ -2,6 +2,7 @@
 
 namespace App\Domain\KnowledgeBase\Models;
 
+use App\Domain\Audit\Concerns\Auditable;
 use App\Domain\KnowledgeBase\Enums\ArticleStatus;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -41,7 +42,7 @@ use Laravel\Scout\Searchable;
 class Article extends Model
 {
     /** @use HasFactory<ArticleFactory> */
-    use HasFactory, Searchable;
+    use Auditable, HasFactory, Searchable;
 
     /**
      * @return BelongsTo<Section, $this>

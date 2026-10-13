@@ -1,4 +1,11 @@
-import { Head, Link, router, setLayoutProps, usePage } from '@inertiajs/react';
+import {
+    Head,
+    Link,
+    router,
+    setLayoutProps,
+    useForm,
+    usePage,
+} from '@inertiajs/react';
 import {
     Activity as ActivityIcon,
     Briefcase,
@@ -10,6 +17,7 @@ import {
     Fingerprint,
     KeyRound,
     Languages,
+    LockKeyhole,
     LayoutDashboard,
     LogIn,
     LogOut,
@@ -18,6 +26,7 @@ import {
     MoreHorizontal,
     Pencil,
     Phone,
+    RotateCcw,
     Plug,
     ShieldCheck,
     ShieldOff,
@@ -39,6 +48,7 @@ import { AnimatedTabs } from '@/components/ui/animated-tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
     DialogClose,
@@ -54,7 +64,10 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
+import InputError from '@/components/input-error';
+import PasswordInput from '@/components/password-input';
 import { useTranslation } from '@/hooks/use-translation';
 import { formatDateTime, relativeTime } from '@/lib/tickets';
 import { show as showTicket } from '@/routes/agent/tickets';
@@ -68,6 +81,10 @@ import {
     show,
 } from '@/routes/admin/users';
 import { destroy as destroySessions } from '@/routes/admin/users/sessions';
+import {
+    requireChange as requirePasswordChange,
+    update as updatePassword,
+} from '@/routes/admin/users/password';
 import { destroy as resetTwoFactor } from '@/routes/admin/users/two-factor';
 import type { Ticket } from '@/types';
 
@@ -103,6 +120,9 @@ type Stats = {
 };
 
 type Security = {
+    password_changed_at: string | null;
+    password_change_required: boolean;
+    password_expires_at: string | null;
     two_factor_enabled: boolean;
     passkeys: number;
     api_tokens: number;
@@ -152,6 +172,7 @@ export default function UserShow({
     const { errors } = usePage().props;
     const [tab, setTab] = useState('overview');
     const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
+    const [settingPassword, setSettingPassword] = useState(false);
     const isStaff = user.type === 'staff';
     const isDeactivated = user.deactivated_at !== null;
 
@@ -250,6 +271,41 @@ export default function UserShow({
                                             ? t('Resend invitation')
                                             : t('Send password reset link')}
                                     </DropdownMenuItem>
+                                )}
+                                {!isDeactivated && (
+                                    <>
+                                        <DropdownMenuItem
+                                            onSelect={() =>
+                                                setSettingPassword(true)
+                                            }
+                                        >
+                                            <LockKeyhole /> {t('Set password')}
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                            onSelect={() =>
+                                                setConfirmation({
+                                                    title: t(
+                                                        'Ask :name for a new password?',
+                                                        { name: user.name },
+                                                    ),
+                                                    description: t(
+                                                        'The next time they use the help desk, they must choose a new password before doing anything else.',
+                                                    ),
+                                                    confirmLabel: t(
+                                                        'Require new password',
+                                                    ),
+                                                    href: requirePasswordChange.url(
+                                                        user.id,
+                                                    ),
+                                                    method: 'post',
+                                                    destructive: false,
+                                                })
+                                            }
+                                        >
+                                            <RotateCcw />{' '}
+                                            {t('Require new password')}
+                                        </DropdownMenuItem>
+                                    </>
                                 )}
                                 <DropdownMenuItem
                                     onSelect={() =>
@@ -465,7 +521,136 @@ export default function UserShow({
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <SetPasswordDialog
+                user={user}
+                open={settingPassword}
+                onClose={() => setSettingPassword(false)}
+            />
         </>
+    );
+}
+
+function SetPasswordDialog({
+    user,
+    open,
+    onClose,
+}: {
+    user: UserDetail;
+    open: boolean;
+    onClose: () => void;
+}) {
+    const { t } = useTranslation();
+    const form = useForm({
+        password: '',
+        password_confirmation: '',
+        require_change: true,
+        notify: false,
+    });
+
+    const close = () => {
+        form.reset();
+        form.clearErrors();
+        onClose();
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={(value) => !value && close()}>
+            <DialogContent>
+                <form
+                    onSubmit={(event) => {
+                        event.preventDefault();
+                        form.put(updatePassword.url(user.id), {
+                            preserveScroll: true,
+                            onSuccess: close,
+                        });
+                    }}
+                    className="space-y-5"
+                >
+                    <DialogTitle>
+                        {t('Set a password for :name', { name: user.name })}
+                    </DialogTitle>
+                    <DialogDescription>
+                        {t(
+                            'Give them the password yourself, for example by phone. They are signed out everywhere.',
+                        )}
+                    </DialogDescription>
+
+                    <div className="grid gap-2">
+                        <Label htmlFor="new-user-password">
+                            {t('New password')}
+                        </Label>
+                        <PasswordInput
+                            id="new-user-password"
+                            autoComplete="new-password"
+                            value={form.data.password}
+                            onChange={(event) =>
+                                form.setData('password', event.target.value)
+                            }
+                        />
+                        <InputError message={form.errors.password} />
+                    </div>
+
+                    <div className="grid gap-2">
+                        <Label htmlFor="new-user-password-confirmation">
+                            {t('Confirm password')}
+                        </Label>
+                        <PasswordInput
+                            id="new-user-password-confirmation"
+                            autoComplete="new-password"
+                            value={form.data.password_confirmation}
+                            onChange={(event) =>
+                                form.setData(
+                                    'password_confirmation',
+                                    event.target.value,
+                                )
+                            }
+                        />
+                    </div>
+
+                    <div className="space-y-3">
+                        <Label className="flex items-start gap-3 font-normal">
+                            <Checkbox
+                                checked={form.data.require_change}
+                                onCheckedChange={(checked) =>
+                                    form.setData(
+                                        'require_change',
+                                        checked === true,
+                                    )
+                                }
+                                className="mt-0.5"
+                            />
+                            {t('Require a new password at next sign-in')}
+                        </Label>
+                        <Label className="flex items-start gap-3 font-normal">
+                            <Checkbox
+                                checked={form.data.notify}
+                                onCheckedChange={(checked) =>
+                                    form.setData('notify', checked === true)
+                                }
+                                className="mt-0.5"
+                            />
+                            {t(
+                                'Email them that their password changed (without the password)',
+                            )}
+                        </Label>
+                    </div>
+
+                    <DialogFooter className="gap-2">
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            onClick={close}
+                        >
+                            {t('Cancel')}
+                        </Button>
+                        <Button type="submit" disabled={form.processing}>
+                            {t('Set password')}
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
     );
 }
 
@@ -703,12 +888,33 @@ function SecuritySummary({
         );
     }
 
+    const passwordExpired =
+        security.password_expires_at !== null &&
+        new Date(security.password_expires_at) < new Date();
+
     const checks = [
         {
             icon: Mail,
             label: t('Email address'),
             ok: user.email_verified,
             value: user.email_verified ? t('Verified') : t('Not verified'),
+        },
+        {
+            icon: LockKeyhole,
+            label: t('Password'),
+            ok:
+                security.password_change_required || passwordExpired
+                    ? false
+                    : null,
+            value: security.password_change_required
+                ? t('New password required')
+                : passwordExpired
+                  ? t('Expired')
+                  : security.password_changed_at
+                    ? t('Changed :time', {
+                          time: relativeTime(security.password_changed_at),
+                      })
+                    : t('Never set'),
         },
         {
             icon: ShieldCheck,
@@ -866,6 +1072,24 @@ function ActivityTimeline({
                 return t('signed this person out everywhere');
             case 'two_factor_reset':
                 return t('reset two-factor authentication');
+            case 'password_set':
+                return t('set a new password');
+            case 'password_change_required':
+                return t('asked for a new password');
+            case 'password_changed':
+                return t('changed their password');
+            case 'password_reset':
+                return t('reset their password by email');
+            case 'login':
+                return t('signed in');
+            case 'logout':
+                return t('signed out');
+            case 'login_failed':
+                return t('failed to sign in');
+            case 'two_factor_enabled':
+                return t('turned on two-factor authentication');
+            case 'two_factor_disabled':
+                return t('turned off two-factor authentication');
             case 'support_access':
                 return t('signed in as this person (support access)');
             default:

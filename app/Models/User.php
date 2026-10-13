@@ -7,6 +7,7 @@ use App\Domain\Accounts\Enums\TicketAccess;
 use App\Domain\Accounts\Enums\UserType;
 use App\Domain\Accounts\Models\Group;
 use App\Domain\Accounts\Models\Organization;
+use App\Domain\Accounts\Models\PasswordHistory;
 use App\Domain\Accounts\Models\Role;
 use App\Domain\Accounts\Support\PermissionDefinition;
 use App\Domain\Accounts\Support\PermissionRegistry;
@@ -56,6 +57,8 @@ use Spatie\Permission\Traits\HasRoles;
  * @property string|null $signature
  * @property Carbon|null $last_login_at
  * @property Carbon|null $deactivated_at
+ * @property Carbon|null $password_changed_at
+ * @property bool $password_change_required
  * @property-read string|null $avatar
  * @property bool $is_available
  * @property array<string, mixed>|null $preferences
@@ -74,6 +77,7 @@ use Spatie\Permission\Traits\HasRoles;
  * @property-read Collection<int, Ticket> $collaboratingTickets
  * @property-read Collection<int, SavedView> $savedViews
  * @property-read Collection<int, Role> $roles
+ * @property-read Collection<int, PasswordHistory> $passwordHistories
  */
 #[Fillable(['name', 'email', 'password', 'timezone', 'locale', 'job_title', 'phone', 'signature'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token', 'preferences', 'avatar_path'])]
@@ -88,6 +92,7 @@ class User extends Authenticatable implements HasLocalePreference, MustVerifyEma
      */
     protected $attributes = [
         'type' => 'customer',
+        'password_change_required' => false,
         'is_available' => true,
     ];
 
@@ -141,6 +146,16 @@ class User extends Authenticatable implements HasLocalePreference, MustVerifyEma
     public function savedViews(): HasMany
     {
         return $this->hasMany(SavedView::class);
+    }
+
+    /**
+     * Passwords used before, newest last; only their hashes.
+     *
+     * @return HasMany<PasswordHistory, $this>
+     */
+    public function passwordHistories(): HasMany
+    {
+        return $this->hasMany(PasswordHistory::class);
     }
 
     /**
@@ -306,6 +321,8 @@ class User extends Authenticatable implements HasLocalePreference, MustVerifyEma
             'two_factor_confirmed_at' => 'datetime',
             'last_login_at' => 'datetime',
             'deactivated_at' => 'datetime',
+            'password_changed_at' => 'datetime',
+            'password_change_required' => 'boolean',
             'is_available' => 'boolean',
             'preferences' => 'array',
         ];

@@ -10,6 +10,7 @@ use App\Domain\Entitlements\Enums\Feature;
 use App\Domain\Entitlements\Support\PlanLimits;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\SaveRoleRequest;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -53,9 +54,10 @@ class RoleController extends Controller
     public function store(SaveRoleRequest $request): RedirectResponse
     {
         DB::transaction(function () use ($request): void {
-            $role = Role::create(['name' => $request->roleAttributes()['name']]);
-            $role->forceFill($request->roleAttributes())->save();
-            $role->syncPermissions($request->permissionNames());
+            // The name is validated as unique; Role's constructor sets the guard.
+            $role = (new Role)->forceFill($request->roleAttributes());
+            $role->save();
+            $this->syncPermissions($role, $request->permissionNames(), $request->user());
         });
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Role created.')]);
@@ -92,7 +94,7 @@ class RoleController extends Controller
                 : $request->roleAttributes();
 
             $role->forceFill($attributes)->save();
-            $role->syncPermissions($request->permissionNames());
+            $this->syncPermissions($role, $request->permissionNames(), $request->user());
         });
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Role saved.')]);
@@ -152,5 +154,27 @@ class RoleController extends Controller
                 'description' => $access->description(),
             ]),
         ];
+    }
+
+    /**
+     * Give the role exactly these permissions, and record which were added and removed.
+     *
+     * @param  list<string>  $permissions
+     */
+    private function syncPermissions(Role $role, array $permissions, User $actor): void
+    {
+        $before = $role->permissions()->pluck('name')->all();
+
+        $role->syncPermissions($permissions);
+
+        $added = array_values(array_diff($permissions, $before));
+        $removed = array_values(array_diff($before, $permissions));
+
+        if ($added !== [] || $removed !== []) {
+            activity()->useLog('admin')->performedOn($role)->causedBy($actor)
+                ->withProperties(['added' => $added, 'removed' => $removed])
+                ->event('permissions_changed')
+                ->log('permissions_changed');
+        }
     }
 }

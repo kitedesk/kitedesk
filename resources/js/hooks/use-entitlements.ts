@@ -17,7 +17,8 @@ export type Feature =
     | 'reports'
     | 'custom_email_templates'
     | 'widget'
-    | 'internal_requests';
+    | 'internal_requests'
+    | 'audit_log';
 
 export type Entitlements = {
     features: Record<Feature, boolean>;

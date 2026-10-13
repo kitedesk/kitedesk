@@ -2,6 +2,7 @@
 
 namespace App\Domain\Tickets\Models;
 
+use App\Domain\Audit\Concerns\Auditable;
 use App\Domain\Tickets\Enums\TicketStatus;
 use App\Domain\Tickets\Support\CustomStatuses;
 use Carbon\CarbonImmutable;
@@ -36,7 +37,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class CustomStatus extends Model
 {
     /** @use HasFactory<CustomStatusFactory> */
-    use HasFactory;
+    use Auditable, HasFactory;
 
     /**
      * Colors admins can pick from; the frontend maps each one to badge and dot classes.

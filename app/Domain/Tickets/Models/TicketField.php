@@ -2,6 +2,7 @@
 
 namespace App\Domain\Tickets\Models;
 
+use App\Domain\Audit\Concerns\Auditable;
 use App\Domain\Tickets\Enums\TicketFieldType;
 use Carbon\CarbonImmutable;
 use Database\Factories\TicketFieldFactory;
@@ -30,7 +31,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 class TicketField extends Model
 {
     /** @use HasFactory<TicketFieldFactory> */
-    use HasFactory;
+    use Auditable, HasFactory;
 
     /**
      * @param  Builder<self>  $query

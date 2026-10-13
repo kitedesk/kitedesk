@@ -20,7 +20,7 @@ class CreateAdministrator
             'password' => $password,
             'timezone' => $timezone,
         ]);
-        $user->forceFill(['type' => UserType::Staff, 'email_verified_at' => now()])->save();
+        $user->forceFill(['type' => UserType::Staff, 'email_verified_at' => now(), 'password_changed_at' => now()])->save();
         $user->syncRoles([RoleCatalog::administrator()]);
 
         return $user;

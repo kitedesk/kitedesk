@@ -2,6 +2,7 @@
 
 namespace App\Domain\Tickets\Models;
 
+use App\Domain\Audit\Concerns\Auditable;
 use Carbon\CarbonImmutable;
 use Database\Factories\TicketFormFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -34,7 +35,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class TicketForm extends Model
 {
     /** @use HasFactory<TicketFormFactory> */
-    use HasFactory;
+    use Auditable, HasFactory;
 
     /**
      * The form used when a ticket has no category, or its category has no form.

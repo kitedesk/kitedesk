@@ -43,7 +43,9 @@ export type CorePermission =
     | 'admin.email'
     | 'admin.automation'
     | 'admin.help_center'
-    | 'admin.integrations';
+    | 'admin.integrations'
+    | 'admin.security'
+    | 'admin.audit_log';
 
 /**
  * Core permissions plus those registered by KiteDesk packages (`KiteDesk::permissions()`).

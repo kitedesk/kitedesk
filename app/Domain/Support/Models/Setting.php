@@ -34,10 +34,48 @@ class Setting extends Model
         return $stored['value'] ?? $default;
     }
 
+    /**
+     * Save a setting; what changed goes to the audit log.
+     */
     public static function put(string $key, mixed $value): void
     {
+        $previous = self::query()->find($key)?->value;
+
         self::query()->updateOrCreate(['key' => $key], ['value' => $value]);
         Cache::forget(self::cacheKey($key));
+
+        self::audit($key, $previous, $value);
+    }
+
+    /**
+     * Records the fields that changed, from what to what. Secrets (API keys, tokens…) are
+     * stored encrypted, so only whether one is set is recorded, never its value.
+     */
+    private static function audit(string $key, mixed $previous, mixed $value): void
+    {
+        $previous = is_array($previous) ? $previous : ['value' => $previous];
+        $value = is_array($value) ? $value : ['value' => $value];
+        $changes = ['old' => [], 'attributes' => []];
+
+        foreach (array_unique([...array_keys($previous), ...array_keys($value)]) as $field) {
+            $before = $previous[$field] ?? null;
+            $after = $value[$field] ?? null;
+
+            if (preg_match('/key|secret|password|token/i', (string) $field) === 1) {
+                $before = $before === null ? null : '********';
+                $after = $after === null ? null : '********';
+            }
+
+            // Loosely: stored values come back from JSON, so 5 and "5" are the same setting.
+            if ($before != $after) {
+                $changes['old'][$field] = $before;
+                $changes['attributes'][$field] = $after;
+            }
+        }
+
+        if ($changes['attributes'] !== []) {
+            activity()->useLog('settings')->withChanges($changes)->withProperties(['setting' => $key])->event('settings_updated')->log('settings_updated');
+        }
     }
 
     private static function cacheKey(string $key): string

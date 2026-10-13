@@ -42,6 +42,11 @@ class CreateApiToken
         $token = $owner->createToken($name, $abilities, now()->addDays($expiresInDays));
         $token->accessToken->forceFill(['created_by_id' => $creator->id])->save();
 
+        activity()->useLog('auth')->performedOn($owner)->causedBy($creator)
+            ->withProperties(['token' => $name, 'abilities' => $abilities, 'expires_in_days' => $expiresInDays])
+            ->event('token_created')
+            ->log('token_created');
+
         return $token;
     }
 

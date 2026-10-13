@@ -3,6 +3,7 @@
 namespace App\Domain\Workflows\Models;
 
 use App\Domain\Accounts\Enums\Permission;
+use App\Domain\Audit\Concerns\Auditable;
 use App\Domain\Entitlements\Enums\Feature;
 use App\Domain\Entitlements\Support\PlanLimits;
 use App\Domain\Workflows\Enums\WorkflowTrigger;
@@ -47,12 +48,20 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Workflow extends Model
 {
     /** @use HasFactory<WorkflowFactory> */
-    use HasFactory;
+    use Auditable, HasFactory;
 
     /**
      * Runs per ticket when the limit is "unlimited"; the last line of defence against loops.
      */
     public const int HARD_RUN_LIMIT = 100;
+
+    /**
+     * @return list<string>
+     */
+    protected function notAudited(): array
+    {
+        return ['last_run_at', 'activated_at', 'created_by', 'updated_by'];
+    }
 
     protected static function booted(): void
     {

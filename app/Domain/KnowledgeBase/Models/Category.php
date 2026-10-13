@@ -2,6 +2,7 @@
 
 namespace App\Domain\KnowledgeBase\Models;
 
+use App\Domain\Audit\Concerns\Auditable;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -28,6 +29,8 @@ use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 #[Table('kb_categories')]
 class Category extends Model
 {
+    use Auditable;
+
     /**
      * @return HasMany<Section, $this>
      */

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Domain\Accounts\Actions\ChangePassword;
 use App\Domain\Accounts\Actions\DeactivateUser;
 use App\Domain\Accounts\Actions\ReactivateUser;
 use App\Domain\Accounts\Actions\SaveUser;
@@ -9,12 +10,15 @@ use App\Domain\Accounts\Enums\UserType;
 use App\Domain\Accounts\Models\Group;
 use App\Domain\Accounts\Models\Organization;
 use App\Domain\Accounts\Models\Role;
+use App\Domain\Accounts\Notifications\PasswordSetByAdministrator;
+use App\Domain\Accounts\Support\PasswordPolicy;
 use App\Domain\Accounts\Support\RoleCatalog;
 use App\Domain\Accounts\Support\UserSessions;
 use App\Domain\Tickets\Enums\TicketStatus;
 use App\Domain\Tickets\Models\Ticket;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\SaveUserRequest;
+use App\Http\Requests\Admin\SetUserPasswordRequest;
 use App\Http\Resources\TicketResource;
 use App\Models\User;
 use DateTimeZone;
@@ -131,6 +135,9 @@ class UserController extends Controller
                     ->get(),
             )->resolve($request)),
             'security' => Inertia::defer(fn () => [
+                'password_changed_at' => $user->password_changed_at?->toIso8601String(),
+                'password_change_required' => $user->password_change_required,
+                'password_expires_at' => PasswordPolicy::current()->expiresAt($user)?->toIso8601String(),
                 'two_factor_enabled' => $user->hasEnabledTwoFactorAuthentication(),
                 'passkeys' => $user->passkeys()->count(),
                 'api_tokens' => $user->tokens()->count(),
@@ -234,6 +241,45 @@ class UserController extends Controller
         activity()->performedOn($user)->causedBy($request->user())->event('sessions_revoked')->log('sessions_revoked');
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __(':name was signed out everywhere.', ['name' => $user->name])]);
+
+        return back();
+    }
+
+    /**
+     * Give the person a password the admin hands over, usually to be replaced at next sign-in.
+     * They are signed out everywhere, as the old password may be in the wrong hands.
+     */
+    public function updatePassword(SetUserPasswordRequest $request, User $user, ChangePassword $changePassword): RedirectResponse
+    {
+        abort_if($user->is($request->user()), 422, __('Use your security settings to change your own password.'));
+        abort_if($user->isDeactivated(), 422, __('This account has been deactivated.'));
+
+        $changePassword->handle($user, $request->string('password')->toString(), $request->user(), $request->boolean('require_change'));
+
+        $user->forceFill(['remember_token' => Str::random(60)])->save();
+        UserSessions::forget($user);
+
+        if ($request->boolean('notify')) {
+            $user->notify(new PasswordSetByAdministrator($request->boolean('require_change')));
+        }
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('New password set for :name.', ['name' => $user->name])]);
+
+        return back();
+    }
+
+    /**
+     * Have the person choose a new password the next time they use KiteDesk.
+     */
+    public function requirePasswordChange(Request $request, User $user): RedirectResponse
+    {
+        abort_if($user->is($request->user()), 422, __('Use your security settings to change your own password.'));
+
+        $user->forceFill(['password_change_required' => true])->save();
+
+        activity()->useLog('users')->performedOn($user)->causedBy($request->user())->event('password_change_required')->log('password_change_required');
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __(':name will be asked for a new password.', ['name' => $user->name])]);
 
         return back();
     }

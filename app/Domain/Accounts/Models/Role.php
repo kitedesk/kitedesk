@@ -4,6 +4,8 @@ namespace App\Domain\Accounts\Models;
 
 use App\Domain\Accounts\Enums\TicketAccess;
 use App\Domain\Accounts\Support\RoleCatalog;
+use App\Domain\Audit\Concerns\Auditable;
+use Spatie\Activitylog\Support\LogOptions;
 use Spatie\Permission\Models\Role as SpatieRole;
 
 /**
@@ -17,6 +19,8 @@ use Spatie\Permission\Models\Role as SpatieRole;
  */
 class Role extends SpatieRole
 {
+    use Auditable;
+
     /**
      * @var array<string, mixed>
      */
@@ -24,6 +28,18 @@ class Role extends SpatieRole
         'ticket_access' => 'all',
         'is_system' => false,
     ];
+
+    /**
+     * Roles have no fillable list (they come from spatie/laravel-permission): what admins set.
+     */
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->useLogName('admin')
+            ->logOnly(['name', 'description', 'ticket_access'])
+            ->logOnlyDirty()
+            ->dontLogEmptyChanges();
+    }
 
     public function displayName(): string
     {

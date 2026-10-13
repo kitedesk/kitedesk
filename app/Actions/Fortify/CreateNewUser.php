@@ -26,10 +26,13 @@ class CreateNewUser implements CreatesNewUsers
             ...Turnstile::rules(),
         ])->validate();
 
-        return User::create([
+        $user = new User([
             'name' => $input['name'],
             'email' => $input['email'],
             'password' => $input['password'],
         ]);
+        $user->forceFill(['password_changed_at' => now()])->save();
+
+        return $user;
     }
 }

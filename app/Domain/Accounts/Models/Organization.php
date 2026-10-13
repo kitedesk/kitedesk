@@ -2,6 +2,7 @@
 
 namespace App\Domain\Accounts\Models;
 
+use App\Domain\Audit\Concerns\Auditable;
 use App\Domain\Tickets\Models\Ticket;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -29,7 +30,7 @@ use Illuminate\Support\Str;
 class Organization extends Model
 {
     /** @use HasFactory<OrganizationFactory> */
-    use HasFactory;
+    use Auditable, HasFactory;
 
     /**
      * Find the organization that owns the domain of the given email address.

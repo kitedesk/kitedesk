@@ -2,6 +2,7 @@
 
 namespace App\Domain\Tickets\Models;
 
+use App\Domain\Audit\Concerns\Auditable;
 use Carbon\CarbonImmutable;
 use Database\Factories\RoutingRuleFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -30,7 +31,7 @@ use Illuminate\Database\Eloquent\Model;
 class RoutingRule extends Model
 {
     /** @use HasFactory<RoutingRuleFactory> */
-    use HasFactory;
+    use Auditable, HasFactory;
 
     /**
      * @param  Builder<self>  $query

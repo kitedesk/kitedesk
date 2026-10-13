@@ -2,6 +2,7 @@
 
 namespace App\Domain\Sla\Models;
 
+use App\Domain\Audit\Concerns\Auditable;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
@@ -19,6 +20,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable(['business_schedule_id', 'name', 'date'])]
 class Holiday extends Model
 {
+    use Auditable;
+
     protected static function booted(): void
     {
         static::saved(fn () => SlaPolicy::forgetEvaluationCache());

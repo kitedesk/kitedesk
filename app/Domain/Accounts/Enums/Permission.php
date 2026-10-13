@@ -30,6 +30,8 @@ enum Permission: string
     case ManageAutomation = 'admin.automation';
     case ManageHelpCenter = 'admin.help_center';
     case ManageIntegrations = 'admin.integrations';
+    case ManageSecurity = 'admin.security';
+    case ViewAuditLog = 'admin.audit_log';
 
     public function label(): string
     {
@@ -56,6 +58,8 @@ enum Permission: string
             self::ManageAutomation => __('Routing rules and workflows'),
             self::ManageHelpCenter => __('Help center'),
             self::ManageIntegrations => __('AI assistant, website widget, webhooks and API tokens'),
+            self::ManageSecurity => __('Password policy and two-factor requirement'),
+            self::ViewAuditLog => __('View and export the audit log'),
         };
     }
 
@@ -72,6 +76,7 @@ enum Permission: string
             self::UseSecrets => __('Exchange passwords and other secrets with customers through encrypted links.'),
             self::UseAi => __('Summarize tickets and draft or improve replies with the AI assistant. Ticket text is sent to the AI provider set up by an admin.'),
             self::ManageTeam => __('Anyone with this permission can change roles, including their own.'),
+            self::ViewAuditLog => __('Who signed in, and who changed users, roles, settings and tickets, with IP addresses.'),
             default => '',
         };
     }

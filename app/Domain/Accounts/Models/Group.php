@@ -3,6 +3,7 @@
 namespace App\Domain\Accounts\Models;
 
 use App\Domain\Accounts\Enums\AssignmentMode;
+use App\Domain\Audit\Concerns\Auditable;
 use App\Domain\Tickets\Models\Ticket;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -31,7 +32,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Group extends Model
 {
     /** @use HasFactory<GroupFactory> */
-    use HasFactory;
+    use Auditable, HasFactory;
 
     /**
      * @var array<string, mixed>

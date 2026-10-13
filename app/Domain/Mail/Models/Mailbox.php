@@ -3,6 +3,7 @@
 namespace App\Domain\Mail\Models;
 
 use App\Domain\Accounts\Models\Group;
+use App\Domain\Audit\Concerns\Auditable;
 use App\Domain\Mail\Enums\MailboxDriver;
 use App\Domain\Tickets\Models\Ticket;
 use App\Domain\Tickets\Models\TicketCategory;
@@ -54,7 +55,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Mailbox extends Model
 {
     /** @use HasFactory<MailboxFactory> */
-    use HasFactory;
+    use Auditable, HasFactory;
 
     /**
      * The mailbox replies go out from when a ticket didn't arrive through one.
