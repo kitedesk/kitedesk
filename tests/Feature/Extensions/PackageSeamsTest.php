@@ -71,3 +71,12 @@ test('package translations are sent with the installation language', function ()
 
     expect(__('Demo billing'))->toBe('Cobrança de demonstração');
 });
+
+test('a package registers a folder of migrations that the hosted edition can run in every workspace', function () {
+    $path = base_path('tests/Fixtures/KiteDeskDemo');
+
+    KiteDesk::migrations($path);
+
+    expect(KiteDesk::migrationPaths())->toContain(realpath($path))
+        ->and(app('migrator')->paths())->toContain($path);
+});
