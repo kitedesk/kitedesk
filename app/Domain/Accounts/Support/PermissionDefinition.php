@@ -17,7 +17,16 @@ final readonly class PermissionDefinition
         public string $group,
         public string $description = '',
         public bool $grantToAgents = false,
+        public ?string $module = null,
     ) {}
+
+    /**
+     * The same permission, owned by a module: it is only listed and checked while that module is enabled.
+     */
+    public function forModule(string $module): self
+    {
+        return new self($this->name, $this->label, $this->group, $this->description, $this->grantToAgents, $module);
+    }
 
     public static function fromEnum(Permission $permission): self
     {

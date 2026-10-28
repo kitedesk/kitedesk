@@ -23,9 +23,12 @@ class RoleController extends Controller
 {
     public function index(): Response
     {
+        $enabled = array_map(fn (PermissionDefinition $definition): string => $definition->name, app(PermissionRegistry::class)->enabled());
+
         return Inertia::render('admin/roles/index', [
             'roles' => Role::query()
-                ->withCount(['users', 'permissions'])
+                ->withCount('users')
+                ->with('permissions:id,name')
                 ->orderByDesc('is_system')
                 ->orderBy('id')
                 ->get()
@@ -37,9 +40,9 @@ class RoleController extends Controller
                     'is_system' => $role->is_system,
                     'is_locked' => $role->isAdministrator(),
                     'users_count' => $role->users_count,
-                    'permissions_count' => $role->permissions_count,
+                    'permissions_count' => $role->permissions->whereIn('name', $enabled)->count(),
                 ]),
-            'permissionsTotal' => count(app(PermissionRegistry::class)->all()),
+            'permissionsTotal' => count($enabled),
         ]);
     }
 
@@ -137,7 +140,7 @@ class RoleController extends Controller
     private function formOptions(): array
     {
         return [
-            'permissionGroups' => collect(app(PermissionRegistry::class)->all())
+            'permissionGroups' => collect(app(PermissionRegistry::class)->enabled())
                 ->groupBy(fn (PermissionDefinition $permission): string => $permission->group)
                 ->map(fn ($permissions, string $group): array => [
                     'title' => $group,
@@ -157,13 +160,20 @@ class RoleController extends Controller
     }
 
     /**
-     * Give the role exactly these permissions, and record which were added and removed.
+     * Give the role exactly these permissions, and record which were added and removed. What
+     * belongs to a disabled module isn't on the form, so the role keeps it.
      *
      * @param  list<string>  $permissions
      */
     private function syncPermissions(Role $role, array $permissions, User $actor): void
     {
         $before = $role->permissions()->pluck('name')->all();
+        $kept = array_values(array_diff($before, array_map(
+            fn (PermissionDefinition $definition): string => $definition->name,
+            app(PermissionRegistry::class)->enabled(),
+        )));
+
+        $permissions = [...$permissions, ...$kept];
 
         $role->syncPermissions($permissions);
 

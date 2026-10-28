@@ -15,7 +15,10 @@ use App\Domain\Entitlements\UnlimitedEntitlements;
 use App\Domain\Mail\Listeners\SendTicketEmails;
 use App\Domain\Sla\Events\SlaTargetMissed;
 use App\Domain\Support\ErrorPages;
+use App\Domain\Support\Extensions\AllModulesAvailable;
 use App\Domain\Support\Extensions\KiteDesk;
+use App\Domain\Support\Extensions\ModuleAvailability;
+use App\Domain\Support\Extensions\ModuleRegistry;
 use App\Domain\Tickets\Events\MessageCreated;
 use App\Domain\Tickets\Events\TicketCreated;
 use App\Domain\Tickets\Events\TicketUpdated;
@@ -29,6 +32,7 @@ use App\Domain\Workflows\Support\WorkflowReferences;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Events\Login;
+use Illuminate\Queue\Events\JobProcessing;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
@@ -55,9 +59,11 @@ class AppServiceProvider extends ServiceProvider
         // Filled by KiteDesk packages while booting, so they live as long as the app.
         $this->app->singleton(KiteDesk::class);
         $this->app->singleton(PermissionRegistry::class);
+        $this->app->singleton(ModuleRegistry::class);
 
         // Package providers register first, so a KiteDesk package's plan binding wins.
         $this->app->bindIf(Entitlements::class, UnlimitedEntitlements::class);
+        $this->app->bindIf(ModuleAvailability::class, AllModulesAvailable::class);
     }
 
     /**
@@ -124,6 +130,7 @@ class AppServiceProvider extends ServiceProvider
     protected function registerDomainListeners(): void
     {
         Event::listen(Login::class, RecordLastLogin::class);
+        Event::listen(JobProcessing::class, fn () => app(ModuleRegistry::class)->flush());
         Event::listen(array_keys(RecordAuthEvent::EVENTS), RecordAuthEvent::class);
         Event::listen([TicketCreated::class, TicketUpdated::class, MessageCreated::class], QueueWebhookDeliveries::class);
         Event::listen([TicketCreated::class, TicketUpdated::class, MessageCreated::class], SendTicketNotifications::class);

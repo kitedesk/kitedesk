@@ -5,6 +5,7 @@ use App\Http\Middleware\EnsureAccountIsSecure;
 use App\Http\Middleware\EnsureApiAbility;
 use App\Http\Middleware\EnsureCanAccessAdmin;
 use App\Http\Middleware\EnsureFeatureEntitled;
+use App\Http\Middleware\EnsureModuleEnabled;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\EnsureUserIsStaff;
 use App\Http\Middleware\HandleAppearance;
@@ -33,6 +34,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin' => EnsureCanAccessAdmin::class,
             'permission' => PermissionMiddleware::class,
             'entitlement' => EnsureFeatureEntitled::class,
+            'module' => EnsureModuleEnabled::class,
             'api.ability' => EnsureApiAbility::class,
         ]);
 

@@ -55,6 +55,8 @@ export type AdminNavItem = {
     permission?: Permission;
     /** The plan feature the page belongs to; hidden when the plan leaves it out. */
     feature?: Feature;
+    /** The module the page belongs to; hidden while an admin has it switched off. */
+    module?: string;
 };
 
 const adminNavItems: { section: string; item: AdminNavItem }[] = [];

@@ -268,7 +268,7 @@ class User extends Authenticatable implements HasLocalePreference, MustVerifyEma
      */
     public function canAccessAdmin(): bool
     {
-        return collect(app(PermissionRegistry::class)->all())
+        return collect(app(PermissionRegistry::class)->enabled())
             ->contains(fn (PermissionDefinition $permission): bool => $permission->isAdminSection() && $this->hasPermission($permission->name));
     }
 

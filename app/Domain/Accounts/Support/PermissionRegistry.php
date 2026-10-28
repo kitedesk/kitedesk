@@ -3,6 +3,7 @@
 namespace App\Domain\Accounts\Support;
 
 use App\Domain\Accounts\Enums\Permission;
+use App\Domain\Support\Extensions\ModuleRegistry;
 
 /**
  * Every permission the installation knows: the core `Permission` cases first, then those
@@ -35,6 +36,22 @@ class PermissionRegistry
             ...$core,
             ...array_values(array_filter($this->registered, fn (PermissionDefinition $definition): bool => ! in_array($definition->name, $coreNames, true))),
         ];
+    }
+
+    /**
+     * The permissions in use: those of modules that are switched off are left out. They stay
+     * stored (see {@see all()}), so roles keep them for when the module is enabled again.
+     *
+     * @return list<PermissionDefinition>
+     */
+    public function enabled(): array
+    {
+        $modules = app(ModuleRegistry::class);
+
+        return array_values(array_filter(
+            $this->all(),
+            fn (PermissionDefinition $definition): bool => $definition->module === null || $modules->isEnabled($definition->module),
+        ));
     }
 
     /**

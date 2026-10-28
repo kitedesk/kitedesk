@@ -13,6 +13,7 @@ import {
     MailCheck,
     MessageCircle,
     Palette,
+    Puzzle,
     Route,
     ScrollText,
     ShieldCheck,
@@ -26,6 +27,7 @@ import {
 } from 'lucide-react';
 import type { PropsWithChildren } from 'react';
 import { useEntitlements } from '@/hooks/use-entitlements';
+import { useModules } from '@/hooks/use-modules';
 import { usePermissions } from '@/hooks/use-permissions';
 import { useTranslation } from '@/hooks/use-translation';
 import { registeredAdminNav } from '@/lib/extensions';
@@ -60,6 +62,13 @@ export const adminNavSections: { title: string; items: AdminNavItem[] }[] = [
                 feature: 'audit_log',
                 icon: ScrollText,
                 description: 'Who did what, and when',
+            },
+            {
+                title: 'Modules',
+                href: '/admin/modules',
+                permission: 'admin.modules',
+                icon: Puzzle,
+                description: 'Switch optional features on or off',
             },
         ],
     },
@@ -270,6 +279,7 @@ function allAdminNavSections() {
 export function useAdminNavSections() {
     const { can } = usePermissions();
     const { includes } = useEntitlements();
+    const { isEnabled } = useModules();
 
     return allAdminNavSections()
         .map((section) => ({
@@ -277,7 +287,8 @@ export function useAdminNavSections() {
             items: section.items.filter(
                 (item) =>
                     (!item.permission || can(item.permission)) &&
-                    (!item.feature || includes(item.feature)),
+                    (!item.feature || includes(item.feature)) &&
+                    (!item.module || isEnabled(item.module)),
             ),
         }))
         .filter((section) => section.items.length > 0);

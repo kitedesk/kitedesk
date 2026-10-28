@@ -6,6 +6,7 @@ use App\Domain\Accounts\Support\PermissionDefinition;
 use App\Domain\Accounts\Support\PermissionRegistry;
 use Closure;
 use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Once;
 use Illuminate\View\FileViewFinder;
 use Inertia\Inertia;
@@ -22,7 +23,7 @@ use Spatie\Permission\PermissionRegistrar;
 class KiteDesk
 {
     /**
-     * @var array{admin: list<Closure|string>, settings: list<Closure|string>}
+     * @var array{admin: list<array{0: Closure|string, 1: string|null}>, settings: list<array{0: Closure|string, 1: string|null}>}
      */
     private array $routes = ['admin' => [], 'settings' => []];
 
@@ -32,24 +33,37 @@ class KiteDesk
     private array $translationPaths = [];
 
     /**
+     * Registers a module admins can switch on and off from the admin center. Its routes,
+     * navigation and permissions only work while it is enabled: pass its id to `adminRoutes()`
+     * and `settingsRoutes()`, and list its permissions in the definition. Listeners, jobs and
+     * anything else a module adds check `ModuleRegistry::isEnabled()` themselves.
+     */
+    public static function module(ModuleDefinition $module): void
+    {
+        app(ModuleRegistry::class)->register($module);
+    }
+
+    /**
      * Routes for the admin center, loaded inside its group (prefix "admin", name "admin.",
      * middleware `auth, verified, admin`). Guard them with an `admin.*` permission.
      *
      * @param  Closure|string  $routes  a closure that registers routes, or a route file
+     * @param  string|null  $module  the module the routes belong to; they answer 404 while it is disabled
      */
-    public static function adminRoutes(Closure|string $routes): void
+    public static function adminRoutes(Closure|string $routes, ?string $module = null): void
     {
-        app(self::class)->routes['admin'][] = $routes;
+        app(self::class)->routes['admin'][] = [$routes, $module];
     }
 
     /**
      * Routes for the personal settings area, loaded inside `auth, verified`.
      *
      * @param  Closure|string  $routes  a closure that registers routes, or a route file
+     * @param  string|null  $module  the module the routes belong to; they answer 404 while it is disabled
      */
-    public static function settingsRoutes(Closure|string $routes): void
+    public static function settingsRoutes(Closure|string $routes, ?string $module = null): void
     {
-        app(self::class)->routes['settings'][] = $routes;
+        app(self::class)->routes['settings'][] = [$routes, $module];
     }
 
     /**
@@ -59,12 +73,16 @@ class KiteDesk
      */
     public static function loadRoutes(string $area): void
     {
-        foreach (app(self::class)->routes[$area] as $routes) {
-            if ($routes instanceof Closure) {
-                $routes();
-            } else {
-                require $routes;
-            }
+        foreach (app(self::class)->routes[$area] as [$routes, $module]) {
+            $load = function () use ($routes): void {
+                if ($routes instanceof Closure) {
+                    $routes();
+                } else {
+                    require $routes;
+                }
+            };
+
+            $module === null ? $load() : Route::middleware("module:{$module}")->group($load);
         }
     }
 
@@ -127,13 +145,15 @@ class KiteDesk
 
     /**
      * Forget everything remembered for the current installation: scoped instances (branding,
-     * custom statuses, workflow origin), `once()` values and the loaded permissions. The hosted
+     * custom statuses, workflow origin), `once()` values, the loaded permissions and which
+     * modules are enabled. The hosted
      * edition calls it when it switches workspace inside one process.
      */
     public static function flushState(): void
     {
         App::forgetScopedInstances();
         Once::flush();
+        app(ModuleRegistry::class)->flush();
         app(PermissionRegistrar::class)->clearPermissionsCollection();
     }
 

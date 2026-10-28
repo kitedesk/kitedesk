@@ -32,6 +32,7 @@ enum Permission: string
     case ManageIntegrations = 'admin.integrations';
     case ManageSecurity = 'admin.security';
     case ViewAuditLog = 'admin.audit_log';
+    case ManageModules = 'admin.modules';
 
     public function label(): string
     {
@@ -60,6 +61,7 @@ enum Permission: string
             self::ManageIntegrations => __('AI assistant, website widget, webhooks and API tokens'),
             self::ManageSecurity => __('Password policy and two-factor requirement'),
             self::ViewAuditLog => __('View and export the audit log'),
+            self::ManageModules => __('Enable and disable modules'),
         };
     }
 
@@ -77,6 +79,7 @@ enum Permission: string
             self::UseAi => __('Summarize tickets and draft or improve replies with the AI assistant. Ticket text is sent to the AI provider set up by an admin.'),
             self::ManageTeam => __('Anyone with this permission can change roles, including their own.'),
             self::ViewAuditLog => __('Who signed in, and who changed users, roles, settings and tickets, with IP addresses.'),
+            self::ManageModules => __('Switch optional modules on or off for everyone. Disabling keeps the module\'s data.'),
             default => '',
         };
     }

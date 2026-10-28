@@ -27,6 +27,8 @@ declare module '@inertiajs/core' {
             captchaSiteKey: string | null;
             /** What the plan includes; everything in the open-source edition. */
             entitlements: import('@/hooks/use-entitlements').Entitlements;
+            /** Ids of the modules an admin has switched on. */
+            modules: string[];
             /** Prefix of every broadcast channel name. */
             broadcastScope: string;
             [key: string]: unknown;

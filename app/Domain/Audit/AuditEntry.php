@@ -125,6 +125,8 @@ final class AuditEntry
             'token_created' => __('Created an API token'),
             'token_revoked' => __('Revoked an API token'),
             'ticket_deleted' => __('Deleted a ticket'),
+            'module_enabled' => __('Enabled a module'),
+            'module_disabled' => __('Disabled a module'),
             'rated' => __('Rated a ticket'),
             'support_access' => __('KiteDesk support signed in as them'),
             'secret_requested' => __('Requested a secret'),
@@ -144,7 +146,7 @@ final class AuditEntry
      */
     public static function actions(): array
     {
-        $events = ['created', 'updated', 'deleted', 'login', 'logout', 'login_failed', 'locked_out', 'two_factor_failed', 'two_factor_enabled', 'two_factor_disabled', 'recovery_codes_generated', 'passkey_added', 'passkey_removed', 'password_changed', 'password_reset', 'password_set', 'password_change_required', 'sessions_revoked', 'two_factor_reset', 'deactivated', 'reactivated', 'permissions_changed', 'settings_updated', 'token_created', 'token_revoked', 'ticket_deleted', 'support_access'];
+        $events = ['created', 'updated', 'deleted', 'login', 'logout', 'login_failed', 'locked_out', 'two_factor_failed', 'two_factor_enabled', 'two_factor_disabled', 'recovery_codes_generated', 'passkey_added', 'passkey_removed', 'password_changed', 'password_reset', 'password_set', 'password_change_required', 'sessions_revoked', 'two_factor_reset', 'deactivated', 'reactivated', 'permissions_changed', 'settings_updated', 'token_created', 'token_revoked', 'ticket_deleted', 'module_enabled', 'module_disabled', 'support_access'];
 
         return collect($events)->mapWithKeys(fn (string $event): array => [$event => self::action($event)])->all();
     }
@@ -161,6 +163,10 @@ final class AuditEntry
     {
         if ($activity->event === 'settings_updated') {
             return ['type' => __('Admin settings'), 'name' => self::settingLabel((string) ($properties['setting'] ?? '')), 'url' => null];
+        }
+
+        if (in_array($activity->event, ['module_enabled', 'module_disabled'], true)) {
+            return ['type' => __('Module'), 'name' => (string) ($properties['name'] ?? $properties['module'] ?? ''), 'url' => null];
         }
 
         if ($activity->event === 'ticket_deleted') {

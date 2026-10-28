@@ -7,6 +7,7 @@ use App\Domain\Branding\Branding;
 use App\Domain\Entitlements\Support\PlanLimits;
 use App\Domain\Support\Broadcasting\Channels;
 use App\Domain\Support\Extensions\KiteDesk;
+use App\Domain\Support\Extensions\ModuleRegistry;
 use App\Domain\Tickets\Support\GuestAccess;
 use App\Domain\Tickets\Support\TicketViews;
 use App\Rules\Turnstile;
@@ -56,6 +57,7 @@ class HandleInertiaRequests extends Middleware
                 'unreadNotifications' => $request->user()->unreadNotifications()->count(),
             ] : null,
             'entitlements' => fn (): array => PlanLimits::sharedProps(),
+            'modules' => fn (): array => app(ModuleRegistry::class)->enabledIds(),
             'broadcastScope' => Channels::scope(),
             'locale' => App::getLocale(),
             'translations' => $this->translations(),
