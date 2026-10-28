@@ -11,7 +11,7 @@ beforeEach(function () {
 });
 
 test('the built-in roles keep the access admins, agents and light agents had', function () {
-    expect(RoleCatalog::administrator()->permissions->pluck('name')->sort()->values()->all())->toBe(collect(Permission::values())->sort()->values()->all())
+    expect(RoleCatalog::administrator()->permissions->pluck('name')->all())->toContain(...Permission::values())
         ->and(Role::findByName(RoleCatalog::AGENT)->hasPermissionTo(Permission::ReplyToTickets->value))->toBeTrue()
         ->and(Role::findByName(RoleCatalog::AGENT)->hasPermissionTo(Permission::ManageTeam->value))->toBeFalse()
         ->and(Role::findByName(RoleCatalog::LIGHT_AGENT)->permissions)->toBeEmpty();

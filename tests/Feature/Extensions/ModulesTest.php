@@ -42,9 +42,12 @@ test('a registered module is disabled until an admin enables it', function () {
     $this->actingAs($this->admin)->get(route('admin.modules.index'))
         ->assertInertia(fn (Assert $page) => $page
             ->component('admin/modules/index')
-            ->where('modules.0.id', 'demo-module')
-            ->where('modules.0.enabled', false)
-            ->where('modules.1.requires.0.name', 'Demo module'));
+            ->where('modules', function ($modules): bool {
+                $modules = collect($modules)->keyBy('id');
+
+                return $modules['demo-module']['enabled'] === false
+                    && $modules['demo-addon']['requires'][0]['name'] === 'Demo module';
+            }));
 });
 
 test('enabling a module switches its routes, permissions and shared prop on', function () {
