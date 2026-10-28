@@ -14,12 +14,18 @@ use Illuminate\Support\ServiceProvider;
  */
 class ModuleDemoServiceProvider extends ServiceProvider
 {
+    public static int $installedCalls = 0;
+
+    public static int $uninstalledCalls = 0;
+
     public static int $enabledCalls = 0;
 
     public static int $disabledCalls = 0;
 
     public function boot(): void
     {
+        self::$installedCalls = 0;
+        self::$uninstalledCalls = 0;
         self::$enabledCalls = 0;
         self::$disabledCalls = 0;
 
@@ -36,6 +42,13 @@ class ModuleDemoServiceProvider extends ServiceProvider
                     grantToAgents: true,
                 ),
             ],
+            migrations: __DIR__.'/migrations',
+            onInstall: function (): void {
+                self::$installedCalls++;
+            },
+            onUninstall: function (): void {
+                self::$uninstalledCalls++;
+            },
             onEnable: function (): void {
                 self::$enabledCalls++;
             },

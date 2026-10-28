@@ -33,11 +33,6 @@ class KiteDesk
     private array $translationPaths = [];
 
     /**
-     * @var list<string>
-     */
-    private array $migrationPaths = [];
-
-    /**
      * Registers a module admins can switch on and off from the admin center. Its routes,
      * navigation and permissions only work while it is enabled: pass its id to `adminRoutes()`
      * and `settingsRoutes()`, and list its permissions in the definition. Listeners, jobs and
@@ -141,24 +136,6 @@ class KiteDesk
         $root = (realpath(base_path()) ?: base_path()).DIRECTORY_SEPARATOR;
 
         return str_starts_with($path, $root) ? substr($path, strlen($root)) : $path;
-    }
-
-    /**
-     * A folder of migrations. They run with `migrate`, and the hosted edition runs them in
-     * every workspace database too, which `loadMigrationsFrom()` alone would not.
-     */
-    public static function migrations(string $path): void
-    {
-        app('migrator')->path($path);
-        app(self::class)->migrationPaths[] = (string) (realpath($path) ?: $path);
-    }
-
-    /**
-     * @return list<string>
-     */
-    public static function migrationPaths(): array
-    {
-        return app(self::class)->migrationPaths;
     }
 
     /**

@@ -5,17 +5,20 @@ namespace App\Domain\Support\Extensions;
 use App\Domain\Accounts\Support\PermissionRegistry;
 use App\Domain\Support\Models\ModuleState;
 use App\Models\User;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
+use Throwable;
 
 /**
- * The modules KiteDesk packages registered (`KiteDesk::module()`) and which of them admins have
- * switched on. A module's code is always loaded and its migrations always run; being enabled
- * only decides whether its routes, navigation, permissions, listeners and jobs are live.
- * Disabling keeps all the module's data.
+ * The modules KiteDesk packages registered (`KiteDesk::module()`) and where each stands on this
+ * installation. A module's code is always loaded, but nothing else happens until an admin
+ * installs it: that runs its migrations. Enabling then switches on its routes, navigation,
+ * permissions, listeners and jobs; disabling switches them off and keeps all its data.
+ * Uninstalling, only possible while disabled, rolls its migrations back and so deletes its data.
  */
 class ModuleRegistry
 {
-    private const string CACHE_KEY = 'modules:enabled';
+    private const string CACHE_KEY = 'modules:state';
 
     /**
      * @var array<string, ModuleDefinition>
@@ -23,9 +26,9 @@ class ModuleRegistry
     private array $modules = [];
 
     /**
-     * @var list<string>|null
+     * @var array{installed: list<string>, enabled: list<string>}|null
      */
-    private ?array $enabledIds = null;
+    private ?array $stored = null;
 
     public function __construct(private readonly ModuleAvailability $availability) {}
 
@@ -64,11 +67,34 @@ class ModuleRegistry
     }
 
     /**
+     * Whether an admin has installed the module: its database changes are in place.
+     */
+    public function isInstalled(string $id): bool
+    {
+        return $this->find($id) !== null && in_array($id, $this->state()['installed'], true);
+    }
+
+    /**
      * Whether the module is installed, available to this installation and switched on.
      */
     public function isEnabled(string $id): bool
     {
-        return $this->isAvailable($id) && in_array($id, $this->storedEnabledIds(), true);
+        return $this->isAvailable($id) && $this->isInstalled($id) && in_array($id, $this->state()['enabled'], true);
+    }
+
+    /**
+     * Whether the module has a newer version than the one installed, which may bring migrations.
+     */
+    public function needsUpdate(string $id): bool
+    {
+        $module = $this->find($id);
+
+        return $module !== null && $this->isInstalled($id) && ($this->installedVersion($id) ?? '') !== $module->version;
+    }
+
+    public function installedVersion(string $id): ?string
+    {
+        return ModuleState::query()->whereKey($id)->value('installed_version');
     }
 
     /**
@@ -80,8 +106,123 @@ class ModuleRegistry
     }
 
     /**
-     * Switch a module on. Fails, with a message for the admin, when it isn't available or
-     * needs another module that is not enabled.
+     * Install a module: run its migrations and any setup it needs. It stays switched off.
+     *
+     * @throws ModuleException
+     */
+    public function install(string $id, ?User $actor = null): void
+    {
+        $module = $this->find($id) ?? throw new ModuleException(__('That module is not installed.'));
+
+        if (! $this->isAvailable($id)) {
+            throw new ModuleException(__('Your plan does not include this module.'));
+        }
+
+        if ($this->isInstalled($id)) {
+            return;
+        }
+
+        $missing = array_values(array_filter($module->requires, fn (string $required): bool => ! $this->isInstalled($required)));
+
+        if ($missing !== []) {
+            throw new ModuleException(__('Install :modules first.', ['modules' => $this->names($missing)]));
+        }
+
+        $this->withLock($id, function () use ($module): void {
+            $this->migrate($module, false);
+        });
+
+        $this->store($module, ['installed' => true, 'installed_at' => now(), 'installed_version' => $module->version]);
+        $this->record('module_installed', $module, $actor);
+
+        if ($module->onInstall !== null) {
+            ($module->onInstall)();
+        }
+    }
+
+    /**
+     * Uninstall a module: roll its migrations back, which deletes its data. It must be
+     * switched off first, and no installed module may need it.
+     *
+     * @throws ModuleException
+     */
+    public function uninstall(string $id, ?User $actor = null): void
+    {
+        $module = $this->find($id) ?? throw new ModuleException(__('That module is not installed.'));
+
+        if (! $this->isInstalled($id)) {
+            return;
+        }
+
+        if (in_array($id, $this->state()['enabled'], true)) {
+            throw new ModuleException(__('Disable :module before uninstalling it.', ['module' => $this->name($id)]));
+        }
+
+        $dependents = array_values(array_filter(
+            array_keys($this->modules),
+            fn (string $other): bool => in_array($id, $this->modules[$other]->requires, true) && $this->isInstalled($other),
+        ));
+
+        if ($dependents !== []) {
+            throw new ModuleException(__('Uninstall :modules first.', ['modules' => $this->names($dependents)]));
+        }
+
+        $this->withLock($id, function () use ($module): void {
+            $this->migrate($module, true);
+        });
+
+        $this->store($module, ['installed' => false, 'installed_at' => null, 'installed_version' => null, 'enabled' => false]);
+        $this->record('module_uninstalled', $module, $actor);
+
+        if ($module->onUninstall !== null) {
+            ($module->onUninstall)();
+        }
+    }
+
+    /**
+     * Bring an installed module up to date: run the migrations its newer version added.
+     *
+     * @throws ModuleException
+     */
+    public function update(string $id, ?User $actor = null): void
+    {
+        $module = $this->find($id) ?? throw new ModuleException(__('That module is not installed.'));
+
+        if (! $this->isInstalled($id)) {
+            throw new ModuleException(__('Install :module first.', ['module' => $this->name($id)]));
+        }
+
+        $this->withLock($id, function () use ($module): void {
+            $this->migrate($module, false);
+        });
+
+        $this->store($module, ['installed_version' => $module->version]);
+        $this->record('module_updated', $module, $actor);
+    }
+
+    /**
+     * Update every installed module that is behind, e.g. after a deploy.
+     *
+     * @return list<string> the ids that were updated
+     *
+     * @throws ModuleException
+     */
+    public function updateInstalled(): array
+    {
+        $updated = [];
+
+        foreach (array_keys($this->modules) as $id) {
+            if ($this->needsUpdate($id)) {
+                $this->update($id);
+                $updated[] = $id;
+            }
+        }
+
+        return $updated;
+    }
+
+    /**
+     * Switch a module on. It must be installed, and the modules it needs must be enabled.
      *
      * @throws ModuleException
      */
@@ -91,6 +232,10 @@ class ModuleRegistry
 
         if (! $this->isAvailable($id)) {
             throw new ModuleException(__('Your plan does not include this module.'));
+        }
+
+        if (! $this->isInstalled($id)) {
+            throw new ModuleException(__('Install :module first.', ['module' => $this->name($id)]));
         }
 
         if ($this->isEnabled($id)) {
@@ -103,7 +248,7 @@ class ModuleRegistry
             throw new ModuleException(__('Enable :modules first.', ['modules' => $this->names($missing)]));
         }
 
-        $this->store($module, true, $actor);
+        $this->store($module, ['enabled' => true, 'enabled_at' => now(), 'enabled_by' => $actor?->id]);
         $this->record('module_enabled', $module, $actor);
 
         if ($module->onEnable !== null) {
@@ -120,7 +265,7 @@ class ModuleRegistry
     {
         $module = $this->find($id) ?? throw new ModuleException(__('That module is not installed.'));
 
-        if (! in_array($id, $this->storedEnabledIds(), true)) {
+        if (! in_array($id, $this->state()['enabled'], true)) {
             return;
         }
 
@@ -133,7 +278,7 @@ class ModuleRegistry
             throw new ModuleException(__('Disable :modules first.', ['modules' => $this->names($dependents)]));
         }
 
-        $this->store($module, false, $actor);
+        $this->store($module, ['enabled' => false]);
         $this->record('module_disabled', $module, $actor);
 
         if ($module->onDisable !== null) {
@@ -157,32 +302,87 @@ class ModuleRegistry
      */
     public function flush(): void
     {
-        $this->enabledIds = null;
+        $this->stored = null;
     }
 
     /**
-     * @return list<string>
+     * @return array{installed: list<string>, enabled: list<string>}
      */
-    private function storedEnabledIds(): array
+    private function state(): array
     {
-        return $this->enabledIds ??= array_values(Cache::rememberForever(
-            self::CACHE_KEY,
-            fn (): array => ModuleState::query()->where('enabled', true)->pluck('id')->all(),
-        ));
+        return $this->stored ??= Cache::rememberForever(self::CACHE_KEY, $this->loadState(...));
     }
 
-    private function store(ModuleDefinition $module, bool $enabled, ?User $actor): void
+    /**
+     * @return array{installed: list<string>, enabled: list<string>}
+     */
+    private function loadState(): array
+    {
+        $ids = fn (string $column): array => array_values(ModuleState::query()->where($column, true)->pluck('id')->map(fn ($id): string => (string) $id)->all());
+
+        return ['installed' => $ids('installed'), 'enabled' => $ids('enabled')];
+    }
+
+    /**
+     * @param  array<string, mixed>  $changes
+     */
+    private function store(ModuleDefinition $module, array $changes): void
     {
         $state = ModuleState::query()->firstOrNew(['id' => $module->id]);
 
-        $state->fill([
-            'enabled' => $enabled,
-            'installed_version' => $module->version,
-            ...($enabled ? ['enabled_at' => now(), 'enabled_by' => $actor?->id] : []),
-        ])->save();
+        $state->fill($changes)->save();
 
         Cache::forget(self::CACHE_KEY);
         $this->flush();
+    }
+
+    /**
+     * Run the module's migrations, or roll them back. They are tracked in the `migrations` table
+     * of the database in use, so each workspace keeps its own account of what was run.
+     *
+     * @throws ModuleException
+     */
+    private function migrate(ModuleDefinition $module, bool $rollBack): void
+    {
+        if ($module->migrations === null) {
+            return;
+        }
+
+        $arguments = ['--path' => $module->migrations, '--realpath' => true, '--force' => true];
+
+        try {
+            $exitCode = $rollBack
+                ? Artisan::call('migrate:rollback', [...$arguments, '--step' => 100000])
+                : Artisan::call('migrate', $arguments);
+        } catch (Throwable $exception) {
+            report($exception);
+
+            throw new ModuleException(__('The module’s database changes failed: :error', ['error' => $exception->getMessage()]));
+        }
+
+        if ($exitCode !== 0) {
+            throw new ModuleException(__('The module’s database changes failed: :error', ['error' => trim(Artisan::output())]));
+        }
+    }
+
+    /**
+     * @param  callable(): void  $callback
+     *
+     * @throws ModuleException
+     */
+    private function withLock(string $id, callable $callback): void
+    {
+        $lock = Cache::lock("module-migrations:{$id}", 600);
+
+        if (! $lock->get()) {
+            throw new ModuleException(__('That module is being changed right now. Try again in a moment.'));
+        }
+
+        try {
+            $callback();
+        } finally {
+            $lock->release();
+        }
     }
 
     private function record(string $event, ModuleDefinition $module, ?User $actor): void

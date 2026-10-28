@@ -2038,5 +2038,22 @@
     "Enable and disable modules": "Ativar e desativar módulos",
     "Switch optional modules on or off for everyone. Disabling keeps the module's data.": "Ative ou desative módulos opcionais para todos. Desativar mantém os dados do módulo.",
     "Enabled a module": "Ativou um módulo",
-    "Disabled a module": "Desativou um módulo"
+    "Disabled a module": "Desativou um módulo",
+    "Optional features that come with the helpdesk. Install one to set it up, then enable it. Disabling hides it for everyone and keeps its data; uninstalling removes its data.": "Recursos opcionais que acompanham o helpdesk. Instale um para prepará-lo e depois ative-o. Desativar o esconde para todos e mantém os dados; desinstalar remove os dados.",
+    "Not installed": "Não instalado",
+    "Install": "Instalar",
+    "Update": "Atualizar",
+    "Uninstall": "Desinstalar",
+    "Uninstall :module?": "Desinstalar :module?",
+    "This removes the module’s tables and everything stored in them. It cannot be undone. Install it again later and it starts empty.": "Isso remove as tabelas do módulo e tudo o que está guardado nelas. Não dá para desfazer. Se você instalá-lo de novo mais tarde, ele começa vazio.",
+    "The module is set up again the next time you install it.": "O módulo é preparado de novo na próxima vez que você o instalar.",
+    "Installed a module": "Instalou um módulo",
+    "Uninstalled a module": "Desinstalou um módulo",
+    "Updated a module": "Atualizou um módulo",
+    "Install :modules first.": "Instale :modules primeiro.",
+    "Disable :module before uninstalling it.": "Desative :module antes de desinstalá-lo.",
+    "Uninstall :modules first.": "Desinstale :modules primeiro.",
+    "Install :module first.": "Instale :module primeiro.",
+    "The module’s database changes failed: :error": "As alterações no banco de dados do módulo falharam: :error",
+    "That module is being changed right now. Try again in a moment.": "Esse módulo está sendo alterado agora. Tente de novo em instantes."
 }

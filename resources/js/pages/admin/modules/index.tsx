@@ -6,6 +6,13 @@ import { AdminPageHeader } from '@/components/admin/page-header';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { useTranslation } from '@/hooks/use-translation';
 import { update } from '@/routes/admin/modules';
 
@@ -17,6 +24,11 @@ type Module = {
     vendor: string;
     icon: string;
     requires: { id: string; name: string }[];
+    installed: boolean;
+    /** A newer version than the installed one, which may bring database changes. */
+    needs_update: boolean;
+    /** Whether uninstalling deletes data. */
+    has_data: boolean;
     enabled: boolean;
     /** False when the plan leaves the module out. */
     available: boolean;
@@ -33,15 +45,23 @@ export default function Modules({ modules }: { modules: Module[] }) {
     const { t } = useTranslation();
     const { errors } = usePage().props;
     const [processing, setProcessing] = useState<string | null>(null);
+    const [uninstalling, setUninstalling] = useState<Module | null>(null);
 
-    const toggle = (module: Module) =>
+    const run = (
+        module: Module,
+        action: 'install' | 'enable' | 'disable' | 'uninstall' | 'update',
+        onDone?: () => void,
+    ) =>
         router.put(
             update.url(module.id),
-            { enabled: !module.enabled },
+            action === 'uninstall' ? { action, confirm: true } : { action },
             {
                 preserveScroll: true,
                 onStart: () => setProcessing(module.id),
-                onFinish: () => setProcessing(null),
+                onFinish: () => {
+                    setProcessing(null);
+                    onDone?.();
+                },
             },
         );
 
@@ -51,7 +71,7 @@ export default function Modules({ modules }: { modules: Module[] }) {
             <AdminPageHeader
                 title={t('Modules')}
                 description={t(
-                    'Optional features installed alongside the helpdesk. Turning one off hides it for everyone and keeps its data.',
+                    'Optional features that come with the helpdesk. Install one to set it up, then enable it. Disabling hides it for everyone and keeps its data; uninstalling removes its data.',
                 )}
             />
 
@@ -94,9 +114,11 @@ export default function Modules({ modules }: { modules: Module[] }) {
                                                         : 'secondary'
                                                 }
                                             >
-                                                {module.enabled
-                                                    ? t('Enabled')
-                                                    : t('Disabled')}
+                                                {!module.installed
+                                                    ? t('Not installed')
+                                                    : module.enabled
+                                                      ? t('Enabled')
+                                                      : t('Disabled')}
                                             </Badge>
                                         )}
                                     </div>
@@ -118,26 +140,127 @@ export default function Modules({ modules }: { modules: Module[] }) {
                                             })}`}
                                     </p>
                                 </div>
-                                <Button
-                                    variant={
-                                        module.enabled ? 'secondary' : 'default'
-                                    }
-                                    size="sm"
-                                    disabled={
-                                        processing === module.id ||
-                                        (!module.available && !module.enabled)
-                                    }
-                                    onClick={() => toggle(module)}
-                                >
-                                    {module.enabled
-                                        ? t('Disable')
-                                        : t('Enable')}
-                                </Button>
+                                <div className="flex shrink-0 flex-wrap justify-end gap-2">
+                                    {!module.installed ? (
+                                        <Button
+                                            size="sm"
+                                            disabled={
+                                                processing === module.id ||
+                                                !module.available
+                                            }
+                                            onClick={() =>
+                                                run(module, 'install')
+                                            }
+                                        >
+                                            {t('Install')}
+                                        </Button>
+                                    ) : (
+                                        <>
+                                            {module.needs_update && (
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    disabled={
+                                                        processing ===
+                                                        module.id
+                                                    }
+                                                    onClick={() =>
+                                                        run(module, 'update')
+                                                    }
+                                                >
+                                                    {t('Update')}
+                                                </Button>
+                                            )}
+                                            <Button
+                                                size="sm"
+                                                variant={
+                                                    module.enabled
+                                                        ? 'secondary'
+                                                        : 'default'
+                                                }
+                                                disabled={
+                                                    processing === module.id ||
+                                                    (!module.available &&
+                                                        !module.enabled)
+                                                }
+                                                onClick={() =>
+                                                    run(
+                                                        module,
+                                                        module.enabled
+                                                            ? 'disable'
+                                                            : 'enable',
+                                                    )
+                                                }
+                                            >
+                                                {module.enabled
+                                                    ? t('Disable')
+                                                    : t('Enable')}
+                                            </Button>
+                                            {!module.enabled && (
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    disabled={
+                                                        processing ===
+                                                        module.id
+                                                    }
+                                                    onClick={() =>
+                                                        setUninstalling(module)
+                                                    }
+                                                >
+                                                    {t('Uninstall')}
+                                                </Button>
+                                            )}
+                                        </>
+                                    )}
+                                </div>
                             </li>
                         );
                     })}
                 </ul>
             )}
+
+            <Dialog
+                open={uninstalling !== null}
+                onOpenChange={(open) => !open && setUninstalling(null)}
+            >
+                <DialogContent>
+                    <DialogTitle>
+                        {t('Uninstall :module?', {
+                            module: t(uninstalling?.name ?? ''),
+                        })}
+                    </DialogTitle>
+                    <DialogDescription>
+                        {uninstalling?.has_data
+                            ? t(
+                                  'This removes the module’s tables and everything stored in them. It cannot be undone. Install it again later and it starts empty.',
+                              )
+                            : t(
+                                  'The module is set up again the next time you install it.',
+                              )}
+                    </DialogDescription>
+                    <DialogFooter>
+                        <Button
+                            variant="secondary"
+                            onClick={() => setUninstalling(null)}
+                        >
+                            {t('Cancel')}
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            disabled={processing !== null}
+                            onClick={() =>
+                                uninstalling &&
+                                run(uninstalling, 'uninstall', () =>
+                                    setUninstalling(null),
+                                )
+                            }
+                        >
+                            {t('Uninstall')}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </>
     );
 }

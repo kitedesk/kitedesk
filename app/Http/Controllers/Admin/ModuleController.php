@@ -12,7 +12,7 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * The installed modules, which admins switch on and off.
+ * The modules KiteDesk packages provide, which admins install, switch on and off, and uninstall.
  */
 class ModuleController extends Controller
 {
@@ -26,6 +26,9 @@ class ModuleController extends Controller
                         'id' => $id,
                         'name' => $modules->name($id),
                     ], $module->requires),
+                    'installed' => $modules->isInstalled($module->id),
+                    'needs_update' => $modules->needsUpdate($module->id),
+                    'has_data' => $module->migrations !== null,
                     'enabled' => $modules->isEnabled($module->id),
                     'available' => $modules->isAvailable($module->id),
                 ])
@@ -38,9 +41,13 @@ class ModuleController extends Controller
         abort_if($modules->find($module) === null, 404);
 
         try {
-            $request->boolean('enabled')
-                ? $modules->enable($module, $request->user())
-                : $modules->disable($module, $request->user());
+            match ($request->string('action')->toString()) {
+                'install' => $modules->install($module, $request->user()),
+                'enable' => $modules->enable($module, $request->user()),
+                'disable' => $modules->disable($module, $request->user()),
+                'uninstall' => $modules->uninstall($module, $request->user()),
+                default => $modules->update($module, $request->user()),
+            };
         } catch (ModuleException $exception) {
             return back()->withErrors(['module' => $exception->getMessage()]);
         }

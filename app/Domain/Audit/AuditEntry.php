@@ -127,6 +127,9 @@ final class AuditEntry
             'ticket_deleted' => __('Deleted a ticket'),
             'module_enabled' => __('Enabled a module'),
             'module_disabled' => __('Disabled a module'),
+            'module_installed' => __('Installed a module'),
+            'module_uninstalled' => __('Uninstalled a module'),
+            'module_updated' => __('Updated a module'),
             'rated' => __('Rated a ticket'),
             'support_access' => __('KiteDesk support signed in as them'),
             'secret_requested' => __('Requested a secret'),
@@ -146,7 +149,7 @@ final class AuditEntry
      */
     public static function actions(): array
     {
-        $events = ['created', 'updated', 'deleted', 'login', 'logout', 'login_failed', 'locked_out', 'two_factor_failed', 'two_factor_enabled', 'two_factor_disabled', 'recovery_codes_generated', 'passkey_added', 'passkey_removed', 'password_changed', 'password_reset', 'password_set', 'password_change_required', 'sessions_revoked', 'two_factor_reset', 'deactivated', 'reactivated', 'permissions_changed', 'settings_updated', 'token_created', 'token_revoked', 'ticket_deleted', 'module_enabled', 'module_disabled', 'support_access'];
+        $events = ['created', 'updated', 'deleted', 'login', 'logout', 'login_failed', 'locked_out', 'two_factor_failed', 'two_factor_enabled', 'two_factor_disabled', 'recovery_codes_generated', 'passkey_added', 'passkey_removed', 'password_changed', 'password_reset', 'password_set', 'password_change_required', 'sessions_revoked', 'two_factor_reset', 'deactivated', 'reactivated', 'permissions_changed', 'settings_updated', 'token_created', 'token_revoked', 'ticket_deleted', 'module_enabled', 'module_disabled', 'module_installed', 'module_uninstalled', 'module_updated', 'support_access'];
 
         return collect($events)->mapWithKeys(fn (string $event): array => [$event => self::action($event)])->all();
     }
@@ -165,7 +168,7 @@ final class AuditEntry
             return ['type' => __('Admin settings'), 'name' => self::settingLabel((string) ($properties['setting'] ?? '')), 'url' => null];
         }
 
-        if (in_array($activity->event, ['module_enabled', 'module_disabled'], true)) {
+        if (in_array($activity->event, ['module_enabled', 'module_disabled', 'module_installed', 'module_uninstalled', 'module_updated'], true)) {
             return ['type' => __('Module'), 'name' => (string) ($properties['name'] ?? $properties['module'] ?? ''), 'url' => null];
         }
 

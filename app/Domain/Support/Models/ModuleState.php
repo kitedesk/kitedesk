@@ -9,17 +9,20 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Whether an installed module is switched on. One row per module, created the first time an
- * admin enables it; a module without a row is disabled.
+ * Where a module is on this installation: installed (its database changes are in place) and
+ * enabled (switched on). One row per module, created when an admin first installs it; a
+ * module without a row is not installed.
  *
  * @property string $id
+ * @property bool $installed
+ * @property CarbonImmutable|null $installed_at
  * @property bool $enabled
  * @property CarbonImmutable|null $enabled_at
  * @property int|null $enabled_by
  * @property string|null $installed_version
  * @property array<string, mixed>|null $settings
  */
-#[Fillable(['id', 'enabled', 'enabled_at', 'enabled_by', 'installed_version', 'settings'])]
+#[Fillable(['id', 'installed', 'installed_at', 'enabled', 'enabled_at', 'enabled_by', 'installed_version', 'settings'])]
 class ModuleState extends Model
 {
     public $incrementing = false;
@@ -40,6 +43,8 @@ class ModuleState extends Model
     protected function casts(): array
     {
         return [
+            'installed' => 'boolean',
+            'installed_at' => 'immutable_datetime',
             'enabled' => 'boolean',
             'enabled_at' => 'immutable_datetime',
             'settings' => 'array',

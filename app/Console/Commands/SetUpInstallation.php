@@ -40,6 +40,7 @@ class SetUpInstallation extends Command
         try {
             $ready = $this->createOAuthKeys()
                 && $this->call('migrate', ['--force' => true]) === self::SUCCESS
+                && $this->call('modules:migrate') === self::SUCCESS
                 && $this->createFirstAdministrator();
         } finally {
             flock($lock, LOCK_UN);
