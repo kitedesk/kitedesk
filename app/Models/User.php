@@ -37,6 +37,7 @@ use Laravel\Fortify\Contracts\PasskeyUser;
 use Laravel\Fortify\PasskeyAuthenticatable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Sanctum\HasApiTokens;
+use Spatie\Permission\Exceptions\PermissionDoesNotExist;
 use Spatie\Permission\Traits\HasRoles;
 
 /**
@@ -260,7 +261,16 @@ class User extends Authenticatable implements HasLocalePreference, MustVerifyEma
      */
     public function hasPermission(Permission|string $permission): bool
     {
-        return $this->isStaff() && $this->hasPermissionTo($permission instanceof Permission ? $permission->value : $permission);
+        if (! $this->isStaff()) {
+            return false;
+        }
+
+        try {
+            return $this->hasPermissionTo($permission instanceof Permission ? $permission->value : $permission);
+        } catch (PermissionDoesNotExist) {
+            // Not stored yet, e.g. a database that has not run the migration adding it: nobody has it.
+            return false;
+        }
     }
 
     /**

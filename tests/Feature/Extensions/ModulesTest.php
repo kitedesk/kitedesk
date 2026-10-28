@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Accounts\Enums\UserType;
 use App\Domain\Accounts\Models\Role;
 use App\Domain\Accounts\Support\RoleCatalog;
 use App\Domain\Audit\AuditLog;
@@ -11,6 +12,8 @@ use App\Models\User;
 use Illuminate\Support\Facades\Route;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Activitylog\Models\Activity;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\PermissionRegistrar;
 use Tests\Fixtures\KiteDeskDemo\ModuleDemoServiceProvider;
 
 beforeEach(function () {
@@ -205,4 +208,13 @@ test('a module adds a category to the audit log', function () {
         ->assertInertia(fn (Assert $page) => $page
             ->where('filters.category', 'demo-module')
             ->has('entries.data', 1));
+});
+
+test('a permission that is not stored yet counts as not granted instead of failing', function () {
+    $staff = User::factory()->create(['type' => UserType::Staff]);
+    Permission::query()->where('name', 'admin.modules')->delete();
+    app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+    expect($staff->hasPermission('admin.modules'))->toBeFalse()
+        ->and($staff->canAccessAdmin())->toBeFalse();
 });
