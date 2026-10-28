@@ -138,7 +138,7 @@ export function registeredAgentNav(): readonly AgentNavItem[] {
  * What a ticket panel receives: the ticket it is shown on.
  */
 export type TicketPanelProps = {
-    ticket: { id: number; organization_id?: number | null };
+    ticket: { id: number; subject?: string; organization_id?: number | null };
 };
 
 type TicketPanel = {
