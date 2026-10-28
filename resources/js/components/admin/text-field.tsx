@@ -15,6 +15,8 @@ export function TextField({
     required = false,
     placeholder,
     disabled = false,
+    type = 'text',
+    step,
 }: {
     id: string;
     label?: string;
@@ -25,6 +27,10 @@ export function TextField({
     required?: boolean;
     placeholder?: string;
     disabled?: boolean;
+    /** The input type, e.g. "date" or "number" (ignored for multiline). */
+    type?: string;
+    /** Allowed increments of a number input; use "any" for decimals. */
+    step?: string;
 }) {
     return (
         <div className="grid gap-2">
@@ -43,6 +49,8 @@ export function TextField({
             ) : (
                 <Input
                     id={id}
+                    type={type}
+                    step={step}
                     value={value}
                     placeholder={placeholder}
                     required={required}

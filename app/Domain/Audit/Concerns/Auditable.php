@@ -17,11 +17,20 @@ trait Auditable
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->useLogName('admin')
+            ->useLogName($this->auditCategory())
             ->logFillable()
             ->logExcept([...$this->getHidden(), 'position', 'created_at', 'updated_at', ...$this->notAudited()])
             ->logOnlyDirty()
             ->dontLogEmptyChanges();
+    }
+
+    /**
+     * The audit log category the changes are filed under; modules use the one they added with
+     * `AuditLog::addCategory()`.
+     */
+    protected function auditCategory(): string
+    {
+        return 'admin';
     }
 
     /**
