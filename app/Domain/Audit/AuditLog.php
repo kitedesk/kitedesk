@@ -20,11 +20,9 @@ use Spatie\Activitylog\Models\Activity;
 final class AuditLog
 {
     /**
-     * Categories the audit log can be filtered by (the activity's log name).
-     *
-     * @var list<string>
+     * @var array<string, Closure(): string>
      */
-    public const array CATEGORIES = ['auth', 'users', 'admin', 'settings', 'tickets'];
+    private static array $extraCategories = [];
 
     /**
      * @var array<string, Closure(Request): array<string, mixed>>
@@ -43,7 +41,18 @@ final class AuditLog
     }
 
     /**
-     * The categories with their labels.
+     * Add a category the audit log can be filtered by: the log name its activity is recorded
+     * under (`activity()->useLog($name)`). The label is resolved when shown, so it is translated.
+     *
+     * @param  Closure(): string  $label
+     */
+    public static function addCategory(string $name, Closure $label): void
+    {
+        self::$extraCategories[$name] = $label;
+    }
+
+    /**
+     * The categories with their labels (the activity's log name).
      *
      * @return array<string, string>
      */
@@ -55,6 +64,7 @@ final class AuditLog
             'admin' => __('Admin center'),
             'settings' => __('Settings'),
             'tickets' => __('Tickets'),
+            ...array_map(fn (Closure $label): string => $label(), self::$extraCategories),
         ];
     }
 

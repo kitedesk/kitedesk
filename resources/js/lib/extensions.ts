@@ -107,3 +107,58 @@ export function registerAppBanner(banner: ComponentType): void {
 export function registeredAppBanners(): readonly ComponentType[] {
     return appBanners;
 }
+
+export type AgentNavItem = {
+    title: string;
+    href: string;
+    icon: LucideIcon;
+    /** The permission that unlocks the page; shown to every agent when absent. */
+    permission?: Permission;
+    /** The plan feature the page belongs to; hidden when the plan leaves it out. */
+    feature?: Feature;
+    /** The module the page belongs to; hidden while an admin has it switched off. */
+    module?: string;
+};
+
+const agentNavItems: AgentNavItem[] = [];
+
+/**
+ * Adds an item to the agent workspace sidebar, below the core links. Titles are English
+ * keys, translated where they are rendered.
+ */
+export function registerAgentNav(item: AgentNavItem): void {
+    agentNavItems.push(item);
+}
+
+export function registeredAgentNav(): readonly AgentNavItem[] {
+    return agentNavItems;
+}
+
+/**
+ * What a ticket panel receives: the ticket it is shown on.
+ */
+export type TicketPanelProps = {
+    ticket: { id: number; organization_id?: number | null };
+};
+
+type TicketPanel = {
+    panel: ComponentType<TicketPanelProps>;
+    module?: string;
+};
+
+const ticketPanels: TicketPanel[] = [];
+
+/**
+ * Adds a panel to the side of the ticket page, below the ticket properties (e.g. a time
+ * log). It fetches its own data, and is not rendered while its module is switched off.
+ */
+export function registerTicketPanel(
+    panel: ComponentType<TicketPanelProps>,
+    options: { module?: string } = {},
+): void {
+    ticketPanels.push({ panel, module: options.module });
+}
+
+export function registeredTicketPanels(): readonly TicketPanel[] {
+    return ticketPanels;
+}

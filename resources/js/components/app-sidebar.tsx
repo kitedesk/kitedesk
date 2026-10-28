@@ -30,8 +30,10 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { useEntitlements } from '@/hooks/use-entitlements';
+import { useModules } from '@/hooks/use-modules';
 import { usePermissions } from '@/hooks/use-permissions';
 import { useTranslation } from '@/hooks/use-translation';
+import { registeredAgentNav } from '@/lib/extensions';
 import { index as cannedResponses } from '@/routes/agent/canned-responses';
 import { index as reports } from '@/routes/agent/reports';
 import { index as requests } from '@/routes/agent/requests';
@@ -55,6 +57,13 @@ export function AppSidebar() {
     const { agentNav } = page.props;
     const { can, canAccessAdmin } = usePermissions();
     const { includes } = useEntitlements();
+    const { isEnabled } = useModules();
+    const moduleNav = registeredAgentNav().filter(
+        (item) =>
+            (!item.permission || can(item.permission)) &&
+            (!item.feature || includes(item.feature)) &&
+            (!item.module || isEnabled(item.module)),
+    );
     const url = new URL(page.url, 'http://localhost');
     const onTicketList = url.pathname === index.url();
     const currentView = url.searchParams.get('view') ?? 'unassigned';
@@ -206,6 +215,28 @@ export function AppSidebar() {
                                     </Link>
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
+                        </SidebarMenu>
+                    </SidebarGroup>
+                )}
+                {agentNav && moduleNav.length > 0 && (
+                    <SidebarGroup className="px-2 py-0">
+                        <SidebarMenu>
+                            {moduleNav.map((item) => (
+                                <SidebarMenuItem key={item.href}>
+                                    <SidebarMenuButton
+                                        asChild
+                                        isActive={url.pathname.startsWith(
+                                            item.href,
+                                        )}
+                                        tooltip={{ children: t(item.title) }}
+                                    >
+                                        <Link href={item.href} prefetch>
+                                            <item.icon />
+                                            <span>{t(item.title)}</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                            ))}
                         </SidebarMenu>
                     </SidebarGroup>
                 )}

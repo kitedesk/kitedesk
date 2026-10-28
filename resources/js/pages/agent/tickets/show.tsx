@@ -1,6 +1,8 @@
 import { Head, Link, setLayoutProps, usePage } from '@inertiajs/react';
 import { useEcho, usePresenceChannel } from '@laravel/echo-react';
 import { useChannelName } from '@/hooks/use-channel-name';
+import { useModules } from '@/hooks/use-modules';
+import { registeredTicketPanels } from '@/lib/extensions';
 import { Building2, Clock, History, Mail, Phone, Trash2 } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ConfirmAction } from '@/components/admin/confirm-action';
@@ -256,6 +258,10 @@ export default function TicketShow({
 }: Props) {
     const { auth } = usePage().props;
     const { can } = usePermissions();
+    const { isEnabled } = useModules();
+    const panels = registeredTicketPanels().filter(
+        ({ module }) => !module || isEnabled(module),
+    );
     const channelName = useChannelName();
     const { t } = useTranslation();
     const { viewers, replying, signalReplying } = useTicketPresence(
@@ -335,6 +341,11 @@ export default function TicketShow({
                             disabled={!canOnTicket.merge}
                         />
                     </div>
+                    {panels.map(({ panel: Panel }, index) => (
+                        <div key={index} className="mt-6 border-t pt-4">
+                            <Panel ticket={ticket} />
+                        </div>
+                    ))}
                 </aside>
 
                 <section className="order-1 flex min-w-0 flex-col lg:order-2 lg:min-h-0">

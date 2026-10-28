@@ -3,6 +3,7 @@
 namespace Tests\Fixtures\KiteDeskDemo;
 
 use App\Domain\Accounts\Support\PermissionDefinition;
+use App\Domain\Audit\AuditLog;
 use App\Domain\Support\Extensions\KiteDesk;
 use App\Domain\Support\Extensions\ModuleDefinition;
 use Illuminate\Support\Facades\Route;
@@ -54,5 +55,11 @@ class ModuleDemoServiceProvider extends ServiceProvider
         KiteDesk::adminRoutes(function (): void {
             Route::get('demo-module', fn () => response('demo module'))->middleware('permission:admin.demo_module')->name('demo-module');
         }, 'demo-module');
+
+        KiteDesk::agentRoutes(function (): void {
+            Route::get('demo-module', fn () => response('demo agent page'))->name('demo-module');
+        }, 'demo-module');
+
+        AuditLog::addCategory('demo-module', fn (): string => 'Demo module');
     }
 }

@@ -2,6 +2,7 @@
 
 use App\Domain\Accounts\Models\Role;
 use App\Domain\Accounts\Support\RoleCatalog;
+use App\Domain\Audit\AuditLog;
 use App\Domain\Support\Extensions\ModuleAvailability;
 use App\Domain\Support\Extensions\ModuleDefinition;
 use App\Domain\Support\Extensions\ModuleRegistry;
@@ -15,8 +16,9 @@ use Tests\Fixtures\KiteDeskDemo\ModuleDemoServiceProvider;
 beforeEach(function () {
     $this->app->register(ModuleDemoServiceProvider::class);
 
-    // Routes were loaded before the module registered; load the admin area again.
+    // Routes were loaded before the module registered; load the admin and agent areas again.
     Route::middleware('web')->group(base_path('routes/admin.php'));
+    Route::middleware('web')->group(base_path('routes/agent.php'));
     Route::getRoutes()->refreshNameLookups();
 
     RoleCatalog::sync();
@@ -173,4 +175,31 @@ test('modules can be managed from the command line', function () {
     $this->artisan('modules:disable', ['module' => 'demo-module'])->assertSuccessful();
 
     expect(app(ModuleRegistry::class)->isEnabled('demo-module'))->toBeFalse();
+});
+
+test('a module adds routes to the agent workspace, live only while it is enabled', function () {
+    $agent = User::factory()->agent()->create();
+
+    $this->actingAs($agent)->get('/agent/demo-module')->assertNotFound();
+
+    app(ModuleRegistry::class)->enable('demo-module');
+
+    $this->get('/agent/demo-module')->assertOk()->assertSee('demo agent page');
+
+    $route = Route::getRoutes()->getByName('agent.demo-module');
+    expect($route->gatherMiddleware())->toContain('auth', 'verified', 'staff', 'module:demo-module');
+
+    $this->actingAs(User::factory()->create())->get('/agent/demo-module')->assertForbidden();
+});
+
+test('a module adds a category to the audit log', function () {
+    expect(AuditLog::categories())->toHaveKey('demo-module', 'Demo module');
+
+    activity()->useLog('demo-module')->causedBy($this->admin)->event('created')->log('created');
+
+    $this->actingAs($this->admin)->get(route('admin.audit-log.index', ['category' => 'demo-module']))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('filters.category', 'demo-module')
+            ->has('entries.data', 1));
 });

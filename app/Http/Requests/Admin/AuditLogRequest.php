@@ -18,7 +18,7 @@ class AuditLogRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'category' => ['nullable', 'string', Rule::in(AuditLog::CATEGORIES)],
+            'category' => ['nullable', 'string', Rule::in(array_keys(AuditLog::categories()))],
             'event' => ['nullable', 'string', 'max:50'],
             'user' => ['nullable', 'integer'],
             'from' => ['nullable', 'date'],

@@ -23,9 +23,9 @@ use Spatie\Permission\PermissionRegistrar;
 class KiteDesk
 {
     /**
-     * @var array{admin: list<array{0: Closure|string, 1: string|null}>, settings: list<array{0: Closure|string, 1: string|null}>}
+     * @var array{admin: list<array{0: Closure|string, 1: string|null}>, agent: list<array{0: Closure|string, 1: string|null}>, settings: list<array{0: Closure|string, 1: string|null}>}
      */
-    private array $routes = ['admin' => [], 'settings' => []];
+    private array $routes = ['admin' => [], 'agent' => [], 'settings' => []];
 
     /**
      * @var list<string>
@@ -56,6 +56,18 @@ class KiteDesk
     }
 
     /**
+     * Routes for the agent workspace, loaded inside its group (prefix "agent", name "agent.",
+     * middleware `auth, verified, staff`). Guard them with the permission they need.
+     *
+     * @param  Closure|string  $routes  a closure that registers routes, or a route file
+     * @param  string|null  $module  the module the routes belong to; they answer 404 while it is disabled
+     */
+    public static function agentRoutes(Closure|string $routes, ?string $module = null): void
+    {
+        app(self::class)->routes['agent'][] = [$routes, $module];
+    }
+
+    /**
      * Routes for the personal settings area, loaded inside `auth, verified`.
      *
      * @param  Closure|string  $routes  a closure that registers routes, or a route file
@@ -69,7 +81,7 @@ class KiteDesk
     /**
      * Called from the core route files to load what packages registered for an area.
      *
-     * @param  'admin'|'settings'  $area
+     * @param  'admin'|'agent'|'settings'  $area
      */
     public static function loadRoutes(string $area): void
     {

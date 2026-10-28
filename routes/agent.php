@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Support\Extensions\KiteDesk;
 use App\Http\Controllers\Agent\AvailabilityController;
 use App\Http\Controllers\Agent\BoardPreferencesController;
 use App\Http\Controllers\Agent\BulkTicketController;
@@ -92,4 +93,6 @@ Route::prefix('agent')
 
         Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
         Route::post('notifications/read', [NotificationController::class, 'markAllRead'])->name('notifications.read');
+
+        KiteDesk::loadRoutes('agent');
     });
