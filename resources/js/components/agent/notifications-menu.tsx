@@ -20,10 +20,13 @@ type ServerNotification = {
             | 'ticket_forwarded'
             | 'sla_breached'
             | 'workflow_alert'
-            | 'secret_submitted';
-        ticket_id: number;
+            | 'secret_submitted'
+            /** From a KiteDesk module: `message` is shown and `url` opened. */
+            | 'generic';
+        ticket_id?: number;
         ticket_number?: string;
         subject: string;
+        url?: string;
         author?: string | null;
         excerpt?: string;
         message?: string;
@@ -48,6 +51,8 @@ function describe(notification: ServerNotification): string {
     const number = ticket_number ?? `#${id}`;
 
     switch (kind) {
+        case 'generic':
+            return message ?? subject ?? '';
         case 'ticket_assigned':
             return t(':author assigned you :number :subject', {
                 author: author ?? t('Someone'),
@@ -137,7 +142,9 @@ export function NotificationsMenu() {
         read: item.read_at !== null,
         action: () => {
             setIsOpen(false);
-            router.visit(show(item.data.ticket_id));
+            router.visit(
+                item.data.url ?? show(item.data.ticket_id as number),
+            );
         },
     }));
 
