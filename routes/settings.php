@@ -8,6 +8,7 @@ use App\Http\Controllers\Settings\ProfileAvatarController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\RequiredPasswordController;
 use App\Http\Controllers\Settings\SecurityController;
+use App\Http\Controllers\Settings\SidebarPreferenceController;
 use Illuminate\Auth\Middleware\RequirePassword;
 use Illuminate\Support\Facades\Route;
 
@@ -43,6 +44,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('settings/appearance', 'settings/appearance')->name('appearance.edit');
 
     Route::middleware('staff')->group(function () {
+        Route::put('settings/sidebar', [SidebarPreferenceController::class, 'update'])->name('sidebar-preference.update');
         Route::get('settings/connected-apps', [ConnectedAppController::class, 'index'])->name('connected-apps.index');
         Route::delete('settings/connected-apps/{client}', [ConnectedAppController::class, 'destroy'])->name('connected-apps.destroy');
 

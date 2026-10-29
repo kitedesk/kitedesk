@@ -8,6 +8,7 @@ use App\Domain\Entitlements\Support\PlanLimits;
 use App\Domain\Support\Broadcasting\Channels;
 use App\Domain\Support\Extensions\KiteDesk;
 use App\Domain\Support\Extensions\ModuleRegistry;
+use App\Domain\Support\Sidebar\SidebarSettings;
 use App\Domain\Tickets\Support\GuestAccess;
 use App\Domain\Tickets\Support\TicketViews;
 use App\Rules\Turnstile;
@@ -56,6 +57,7 @@ class HandleInertiaRequests extends Middleware
                 'views' => TicketViews::summary($request->user()),
                 'unreadNotifications' => $request->user()->unreadNotifications()->count(),
             ] : null,
+            'sidebar' => fn (): ?array => $request->user()?->isStaff() ? SidebarSettings::shared($request->user()) : null,
             'entitlements' => fn (): array => PlanLimits::sharedProps(),
             'modules' => fn (): array => app(ModuleRegistry::class)->enabledIds(),
             'broadcastScope' => Channels::scope(),

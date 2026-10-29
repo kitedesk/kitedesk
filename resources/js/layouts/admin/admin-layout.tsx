@@ -13,6 +13,7 @@ import {
     MailCheck,
     MessageCircle,
     Palette,
+    PanelLeft,
     Puzzle,
     Route,
     ScrollText,
@@ -54,6 +55,13 @@ export const adminNavSections: { title: string; items: AdminNavItem[] }[] = [
                 permission: 'admin.branding',
                 icon: Palette,
                 description: 'Name, logo, colors and emails',
+            },
+            {
+                title: 'Sidebar',
+                href: '/admin/sidebar',
+                permission: 'admin.branding',
+                icon: PanelLeft,
+                description: 'How the agent sidebar is laid out',
             },
             {
                 title: 'Audit log',

@@ -120,17 +120,42 @@ export type AgentNavItem = {
     module?: string;
 };
 
-const agentNavItems: AgentNavItem[] = [];
+/** A page inside a menu. It inherits the group's module and feature unless it names its own. */
+export type AgentNavChild = Omit<AgentNavItem, 'icon'> & {
+    icon?: LucideIcon;
+};
 
 /**
- * Adds an item to the agent workspace sidebar, below the core links. Titles are English
- * keys, translated where they are rendered.
+ * A menu with submenus, e.g. one module's pages. In the "menus" sidebar it is a collapsible
+ * menu; in the classic one its children are listed flat. The group disappears when none of
+ * its children is visible.
  */
-export function registerAgentNav(item: AgentNavItem): void {
+export type AgentNavGroup = {
+    title: string;
+    icon: LucideIcon;
+    children: AgentNavChild[];
+    permission?: Permission;
+    feature?: Feature;
+    module?: string;
+};
+
+export type AgentNavEntry = AgentNavItem | AgentNavGroup;
+
+export function isAgentNavGroup(entry: AgentNavEntry): entry is AgentNavGroup {
+    return 'children' in entry;
+}
+
+const agentNavItems: AgentNavEntry[] = [];
+
+/**
+ * Adds a page, or a menu with submenus, to the agent workspace sidebar, below the core links.
+ * Titles are English keys, translated where they are rendered.
+ */
+export function registerAgentNav(item: AgentNavEntry): void {
     agentNavItems.push(item);
 }
 
-export function registeredAgentNav(): readonly AgentNavItem[] {
+export function registeredAgentNav(): readonly AgentNavEntry[] {
     return agentNavItems;
 }
 

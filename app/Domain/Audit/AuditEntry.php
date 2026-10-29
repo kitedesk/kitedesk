@@ -259,6 +259,7 @@ final class AuditEntry
             'locale' => __('Default language'),
             'ai' => __('AI assistant'),
             'widget' => __('Website widget'),
+            'sidebar' => __('Sidebar'),
             'satisfaction' => __('Satisfaction survey'),
             'ticket_numbers' => __('Ticket numbers'),
             'password_policy' => __('Security'),

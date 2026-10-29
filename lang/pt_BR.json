@@ -2056,5 +2056,17 @@
     "Uninstall :modules first.": "Desinstale :modules primeiro.",
     "Install :module first.": "Instale :module primeiro.",
     "The module’s database changes failed: :error": "As alterações no banco de dados do módulo falharam: :error",
-    "That module is being changed right now. Try again in a moment.": "Esse módulo está sendo alterado agora. Tente de novo em instantes."
+    "That module is being changed right now. Try again in a moment.": "Esse módulo está sendo alterado agora. Tente de novo em instantes.",
+    "Sidebar": "Barra lateral",
+    "Sidebar settings saved.": "Configurações da barra lateral salvas.",
+    "How the agent sidebar is laid out": "Como a barra lateral dos agentes é organizada",
+    "How the agent sidebar is laid out by default. Agents can choose their own in their appearance settings.": "Como a barra lateral dos agentes é organizada por padrão. Cada agente pode escolher a sua nas configurações de aparência.",
+    "Choose how the sidebar is laid out for you.": "Escolha como a barra lateral é organizada para você.",
+    "Menus and submenus": "Menus e submenus",
+    "Ticket views and each module’s pages are grouped into menus you can open and close.": "As visualizações de tickets e as páginas de cada módulo ficam agrupadas em menus que você abre e fecha.",
+    "Classic list": "Lista clássica",
+    "Views, saved views and statuses listed one after the other, with the modules’ pages below.": "Visualizações, visualizações salvas e status listados em sequência, com as páginas dos módulos abaixo.",
+    "Follow the default": "Seguir o padrão",
+    "Currently: menus and submenus.": "Atualmente: menus e submenus.",
+    "Currently: classic list.": "Atualmente: lista clássica."
 }
