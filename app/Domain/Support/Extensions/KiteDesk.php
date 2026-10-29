@@ -23,7 +23,7 @@ use Spatie\Permission\PermissionRegistrar;
 class KiteDesk
 {
     /**
-     * @var array{admin: list<array{0: Closure|string, 1: string|null}>, agent: list<array{0: Closure|string, 1: string|null}>, settings: list<array{0: Closure|string, 1: string|null}>}
+     * @var array{admin: list<array{0: Closure|string, 1: string|null}>, agent: list<array{0: Closure|string, 1: string|null}>, portal: list<array{0: Closure|string, 1: string|null}>, settings: list<array{0: Closure|string, 1: string|null}>}
      */
     private array $routes = ['admin' => [], 'agent' => [], 'portal' => [], 'settings' => []];
 
