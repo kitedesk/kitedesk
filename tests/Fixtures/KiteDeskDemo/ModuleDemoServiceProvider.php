@@ -3,6 +3,7 @@
 namespace Tests\Fixtures\KiteDeskDemo;
 
 use App\Domain\Accounts\Support\PermissionDefinition;
+use App\Domain\Api\Support\ApiAbilityDefinition;
 use App\Domain\Audit\AuditLog;
 use App\Domain\Support\Extensions\KiteDesk;
 use App\Domain\Support\Extensions\ModuleDefinition;
@@ -76,6 +77,14 @@ class ModuleDemoServiceProvider extends ServiceProvider
         KiteDesk::portalRoutes(function (): void {
             Route::get('demo-module', fn () => response('demo portal page'))->name('demo-module');
         }, 'demo-module');
+
+        KiteDesk::apiAbilities(new ApiAbilityDefinition('demo:read', 'Read the demo module', ['admin.demo_module'], 'demo-module'));
+
+        KiteDesk::apiRoutes(function (): void {
+            Route::get('demo', fn () => response()->json(['demo' => true]))->middleware('api.ability:demo:read')->name('demo');
+        }, 'demo-module');
+
+        KiteDesk::mcpTool(DemoTool::class, 'demo-module');
 
         AuditLog::addCategory('demo-module', fn (): string => 'Demo module');
     }

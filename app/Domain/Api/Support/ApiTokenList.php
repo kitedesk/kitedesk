@@ -3,7 +3,6 @@
 namespace App\Domain\Api\Support;
 
 use App\Domain\Api\Actions\CreateApiToken;
-use App\Domain\Api\Enums\ApiAbility;
 use App\Models\User;
 use Closure;
 use Illuminate\Database\Eloquent\Builder;
@@ -56,7 +55,7 @@ class ApiTokenList
             'id' => $user->id,
             'name' => $user->name,
             'email' => $user->email,
-            'abilities' => array_map(fn (ApiAbility $ability): string => $ability->value, ApiAbility::availableTo($user)),
+            'abilities' => array_map(fn (ApiAbilityDefinition $ability): string => $ability->value, app(ApiAbilityRegistry::class)->availableTo($user)),
         ];
     }
 
@@ -65,6 +64,6 @@ class ApiTokenList
      */
     public static function formOptions(): array
     {
-        return ['abilities' => ApiAbility::options(), 'expiryDays' => CreateApiToken::EXPIRY_DAYS];
+        return ['abilities' => app(ApiAbilityRegistry::class)->options(), 'expiryDays' => CreateApiToken::EXPIRY_DAYS];
     }
 }

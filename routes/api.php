@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Support\Extensions\KiteDesk;
 use App\Http\Controllers\Api\V1\ArticleController;
 use App\Http\Controllers\Api\V1\GroupController;
 use App\Http\Controllers\Api\V1\HelpCenterController;
@@ -141,4 +142,6 @@ Route::prefix('v1')
         Route::get('reports/tickets', [ReportController::class, 'tickets'])
             ->middleware(['api.ability:reports:read', 'entitlement:reports'])
             ->name('reports.tickets');
+
+        KiteDesk::loadRoutes('api');
     });

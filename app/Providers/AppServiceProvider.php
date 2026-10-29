@@ -7,6 +7,7 @@ use App\Domain\Accounts\Listeners\RecordLastLogin;
 use App\Domain\Accounts\Models\Group;
 use App\Domain\Accounts\Support\PasswordPolicy;
 use App\Domain\Accounts\Support\PermissionRegistry;
+use App\Domain\Api\Support\ApiAbilityRegistry;
 use App\Domain\Audit\AuditLog;
 use App\Domain\Audit\Listeners\RecordAuthEvent;
 use App\Domain\Branding\Branding;
@@ -60,6 +61,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(KiteDesk::class);
         $this->app->singleton(PermissionRegistry::class);
         $this->app->singleton(ModuleRegistry::class);
+        $this->app->singleton(ApiAbilityRegistry::class);
 
         // Package providers register first, so a KiteDesk package's plan binding wins.
         $this->app->bindIf(Entitlements::class, UnlimitedEntitlements::class);

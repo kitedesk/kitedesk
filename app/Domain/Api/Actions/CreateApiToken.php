@@ -3,7 +3,7 @@
 namespace App\Domain\Api\Actions;
 
 use App\Domain\Accounts\Enums\TicketAccess;
-use App\Domain\Api\Enums\ApiAbility;
+use App\Domain\Api\Support\ApiAbilityRegistry;
 use App\Models\User;
 use Illuminate\Validation\ValidationException;
 use Laravel\Sanctum\NewAccessToken;
@@ -34,7 +34,7 @@ class CreateApiToken
         $abilities = array_values(array_unique($abilities));
 
         foreach ($abilities as $index => $ability) {
-            if (ApiAbility::tryFrom($ability)?->allowedFor($owner) !== true) {
+            if (app(ApiAbilityRegistry::class)->find($ability)?->allowedFor($owner) !== true) {
                 throw ValidationException::withMessages(["abilities.{$index}" => __("The token owner's role does not allow this.")]);
             }
         }

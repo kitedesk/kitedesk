@@ -9,6 +9,7 @@ use App\Domain\Ai\Mcp\Tools\ReplyToTicketTool;
 use App\Domain\Ai\Mcp\Tools\SearchArticlesTool;
 use App\Domain\Ai\Mcp\Tools\SearchTicketsTool;
 use App\Domain\Ai\Mcp\Tools\UpdateTicketTool;
+use App\Domain\Support\Extensions\KiteDesk;
 use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Attributes\Instructions;
 use Laravel\Mcp\Server\Attributes\Name;
@@ -38,4 +39,9 @@ class KiteDeskServer extends Server
         SearchArticlesTool::class,
         GetArticleTool::class,
     ];
+
+    protected function boot(): void
+    {
+        $this->tools = [...$this->tools, ...KiteDesk::mcpTools()];
+    }
 }

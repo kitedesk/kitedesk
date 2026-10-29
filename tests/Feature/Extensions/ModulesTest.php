@@ -1,8 +1,11 @@
 <?php
 
+use App\Domain\Accounts\Enums\TicketAccess;
 use App\Domain\Accounts\Enums\UserType;
 use App\Domain\Accounts\Models\Role;
 use App\Domain\Accounts\Support\RoleCatalog;
+use App\Domain\Ai\Support\AiSettings;
+use App\Domain\Api\Support\ApiAbilityRegistry;
 use App\Domain\Audit\AuditLog;
 use App\Domain\Support\Extensions\ModuleAvailability;
 use App\Domain\Support\Extensions\ModuleDefinition;
@@ -14,6 +17,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use Inertia\Testing\AssertableInertia as Assert;
+use Laravel\Sanctum\Sanctum;
 use Spatie\Activitylog\Models\Activity;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\PermissionRegistrar;
@@ -22,10 +26,11 @@ use Tests\Fixtures\KiteDeskDemo\ModuleDemoServiceProvider;
 beforeEach(function () {
     $this->app->register(ModuleDemoServiceProvider::class);
 
-    // Routes were loaded before the module registered; load the admin, agent and portal areas again.
+    // Routes were loaded before the module registered; load the admin, agent, portal and API areas again.
     Route::middleware('web')->group(base_path('routes/admin.php'));
     Route::middleware('web')->group(base_path('routes/agent.php'));
     Route::middleware('web')->group(base_path('routes/portal.php'));
+    Route::prefix('api')->middleware('api')->group(base_path('routes/api.php'));
     Route::getRoutes()->refreshNameLookups();
 
     RoleCatalog::sync();
@@ -336,4 +341,42 @@ test('a module whose migrations fail stays uninstalled', function () {
         ->assertSessionHasErrors('module');
 
     expect($registry->isInstalled('demo-module'))->toBeFalse();
+});
+
+test('a module can add API abilities and endpoints, live only while it is enabled', function () {
+    $agent = User::factory()->agent()->create();
+    $stripped = User::factory()->withPermissions([], TicketAccess::All)->create();
+    $options = fn () => collect(app(ApiAbilityRegistry::class)->options())->pluck('value');
+
+    expect($options())->not->toContain('demo:read');
+
+    Sanctum::actingAs($agent, ['demo:read']);
+    $this->getJson('/api/v1/demo')->assertNotFound();
+
+    installAndEnable('demo-module');
+
+    expect($options())->toContain('demo:read');
+    $this->getJson('/api/v1/demo')->assertOk()->assertJson(['demo' => true]);
+
+    Sanctum::actingAs($agent, ['tickets:read']);
+    $this->getJson('/api/v1/demo')->assertForbidden();
+
+    // The ability needs the module's permission, which this agent's token owner lacks.
+    Sanctum::actingAs($stripped, ['demo:read']);
+    $this->getJson('/api/v1/demo')->assertForbidden();
+
+    $this->actingAs($agent)->post(route('api-tokens.store'), ['name' => 'Demo', 'abilities' => ['demo:read'], 'expires_in_days' => 30])->assertSessionHasNoErrors();
+});
+
+test('a module can add tools to the MCP server, offered only while it is enabled', function () {
+    (new AiSettings(mcpEnabled: true))->save();
+    $agent = User::factory()->agent()->create();
+    $token = $agent->createToken('mcp', ['demo:read'])->plainTextToken;
+    $list = fn (): array => collect($this->postJson('/mcp', ['jsonrpc' => '2.0', 'id' => 1, 'method' => 'tools/list', 'params' => (object) []], ['Authorization' => 'Bearer '.$token])->json('result.tools'))->pluck('name')->all();
+
+    expect($list())->not->toContain('demo_tool');
+
+    installAndEnable('demo-module');
+
+    expect($list())->toContain('demo_tool');
 });

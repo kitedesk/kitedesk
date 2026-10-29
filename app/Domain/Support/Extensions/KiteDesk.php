@@ -4,12 +4,15 @@ namespace App\Domain\Support\Extensions;
 
 use App\Domain\Accounts\Support\PermissionDefinition;
 use App\Domain\Accounts\Support\PermissionRegistry;
+use App\Domain\Api\Support\ApiAbilityDefinition;
+use App\Domain\Api\Support\ApiAbilityRegistry;
 use Closure;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Once;
 use Illuminate\View\FileViewFinder;
 use Inertia\Inertia;
+use Laravel\Mcp\Server\Tool;
 use Spatie\Permission\PermissionRegistrar;
 
 /**
@@ -23,9 +26,14 @@ use Spatie\Permission\PermissionRegistrar;
 class KiteDesk
 {
     /**
-     * @var array{admin: list<array{0: Closure|string, 1: string|null}>, agent: list<array{0: Closure|string, 1: string|null}>, portal: list<array{0: Closure|string, 1: string|null}>, settings: list<array{0: Closure|string, 1: string|null}>}
+     * @var array{admin: list<array{0: Closure|string, 1: string|null}>, agent: list<array{0: Closure|string, 1: string|null}>, portal: list<array{0: Closure|string, 1: string|null}>, api: list<array{0: Closure|string, 1: string|null}>, settings: list<array{0: Closure|string, 1: string|null}>}
      */
-    private array $routes = ['admin' => [], 'agent' => [], 'portal' => [], 'settings' => []];
+    private array $routes = ['admin' => [], 'agent' => [], 'portal' => [], 'api' => [], 'settings' => []];
+
+    /**
+     * @var list<array{0: class-string<Tool>, 1: string|null}>
+     */
+    private array $mcpTools = [];
 
     /**
      * @var list<string>
@@ -81,6 +89,55 @@ class KiteDesk
     }
 
     /**
+     * Routes for the REST API, loaded inside the `v1` group (prefix "api/v1", name "api.v1.",
+     * token authentication, staff only, rate limited). Guard each with `api.ability:{ability}` for an
+     * ability registered through `apiAbilities()`.
+     *
+     * @param  Closure|string  $routes  a closure that registers routes, or a route file
+     * @param  string|null  $module  the module the routes belong to; they answer 404 while it is disabled
+     */
+    public static function apiRoutes(Closure|string $routes, ?string $module = null): void
+    {
+        app(self::class)->routes['api'][] = [$routes, $module];
+    }
+
+    /**
+     * Token abilities the package adds. Name them `{area}:{read|write}`; give the module so they
+     * are only offered and honoured while it is enabled.
+     */
+    public static function apiAbilities(ApiAbilityDefinition ...$definitions): void
+    {
+        app(ApiAbilityRegistry::class)->register(...$definitions);
+    }
+
+    /**
+     * Tools the package adds to the MCP server. Each decides in `shouldRegister()` whether the
+     * caller may use it (see `McpAccess::allows()`); a module's tools are left out while it is off.
+     *
+     * @param  class-string<Tool>  $tool
+     * @param  string|null  $module  the module the tool belongs to
+     */
+    public static function mcpTool(string $tool, ?string $module = null): void
+    {
+        app(self::class)->mcpTools[] = [$tool, $module];
+    }
+
+    /**
+     * The package tools that are available now.
+     *
+     * @return list<class-string<Tool>>
+     */
+    public static function mcpTools(): array
+    {
+        $modules = app(ModuleRegistry::class);
+
+        return array_values(array_map(
+            fn (array $entry): string => $entry[0],
+            array_filter(app(self::class)->mcpTools, fn (array $entry): bool => $entry[1] === null || $modules->isEnabled($entry[1])),
+        ));
+    }
+
+    /**
      * Routes for the personal settings area, loaded inside `auth, verified`.
      *
      * @param  Closure|string  $routes  a closure that registers routes, or a route file
@@ -94,7 +151,7 @@ class KiteDesk
     /**
      * Called from the core route files to load what packages registered for an area.
      *
-     * @param  'admin'|'agent'|'portal'|'settings'  $area
+     * @param  'admin'|'agent'|'portal'|'api'|'settings'  $area
      */
     public static function loadRoutes(string $area): void
     {

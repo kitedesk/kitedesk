@@ -2,7 +2,7 @@
 
 namespace App\Http\Middleware;
 
-use App\Domain\Api\Enums\ApiAbility;
+use App\Domain\Api\Support\ApiAbilityRegistry;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -18,11 +18,12 @@ class EnsureApiAbility
      */
     public function handle(Request $request, Closure $next, string $ability): Response
     {
-        $ability = ApiAbility::from($ability);
+        $definition = app(ApiAbilityRegistry::class)->find($ability);
         $user = $request->user();
 
-        abort_unless($user !== null && $user->tokenCan($ability->value), Response::HTTP_FORBIDDEN, __('This token does not have the :ability ability.', ['ability' => $ability->value]));
-        abort_unless($ability->allowedFor($user), Response::HTTP_FORBIDDEN, __("The token owner's role does not allow this."));
+        abort_if($definition === null, Response::HTTP_NOT_FOUND);
+        abort_unless($user !== null && $user->tokenCan($definition->value), Response::HTTP_FORBIDDEN, __('This token does not have the :ability ability.', ['ability' => $definition->value]));
+        abort_unless($definition->allowedFor($user), Response::HTTP_FORBIDDEN, __("The token owner's role does not allow this."));
 
         return $next($request);
     }
