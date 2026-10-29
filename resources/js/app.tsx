@@ -72,6 +72,7 @@ void createInertiaApp({
             case name.startsWith('admin/'):
                 return [AppLayout, AdminLayout];
             case name.startsWith('portal/') ||
+                name.includes('::portal/') ||
                 name.startsWith('help/') ||
                 name.startsWith('guest/'):
                 return PortalLayout;
