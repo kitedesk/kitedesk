@@ -22,9 +22,10 @@ use Tests\Fixtures\KiteDeskDemo\ModuleDemoServiceProvider;
 beforeEach(function () {
     $this->app->register(ModuleDemoServiceProvider::class);
 
-    // Routes were loaded before the module registered; load the admin and agent areas again.
+    // Routes were loaded before the module registered; load the admin, agent and portal areas again.
     Route::middleware('web')->group(base_path('routes/admin.php'));
     Route::middleware('web')->group(base_path('routes/agent.php'));
+    Route::middleware('web')->group(base_path('routes/portal.php'));
     Route::getRoutes()->refreshNameLookups();
 
     RoleCatalog::sync();
@@ -228,6 +229,18 @@ test('a module adds routes to the agent workspace, live only while it is enabled
     expect($route->gatherMiddleware())->toContain('auth', 'verified', 'staff', 'module:demo-module');
 
     $this->actingAs(User::factory()->create())->get('/agent/demo-module')->assertForbidden();
+});
+
+test('a module can add pages to the customer portal, which answer 404 while it is disabled', function () {
+    $customer = User::factory()->create();
+
+    $this->actingAs($customer)->get('/portal/demo-module')->assertNotFound();
+
+    installAndEnable('demo-module');
+
+    $this->actingAs($customer)->get('/portal/demo-module')->assertOk()->assertSee('demo portal page');
+
+    expect(Route::getRoutes()->getByName('portal.demo-module')->gatherMiddleware())->toContain('auth', 'verified', 'module:demo-module');
 });
 
 test('a module adds a category to the audit log', function () {

@@ -73,6 +73,10 @@ class ModuleDemoServiceProvider extends ServiceProvider
             Route::get('demo-module', fn () => response('demo agent page'))->name('demo-module');
         }, 'demo-module');
 
+        KiteDesk::portalRoutes(function (): void {
+            Route::get('demo-module', fn () => response('demo portal page'))->name('demo-module');
+        }, 'demo-module');
+
         AuditLog::addCategory('demo-module', fn (): string => 'Demo module');
     }
 }

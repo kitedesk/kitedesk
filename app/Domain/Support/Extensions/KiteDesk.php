@@ -25,7 +25,7 @@ class KiteDesk
     /**
      * @var array{admin: list<array{0: Closure|string, 1: string|null}>, agent: list<array{0: Closure|string, 1: string|null}>, settings: list<array{0: Closure|string, 1: string|null}>}
      */
-    private array $routes = ['admin' => [], 'agent' => [], 'settings' => []];
+    private array $routes = ['admin' => [], 'agent' => [], 'portal' => [], 'settings' => []];
 
     /**
      * @var list<string>
@@ -68,6 +68,19 @@ class KiteDesk
     }
 
     /**
+     * Routes for the customer portal, loaded inside its group (prefix "portal", name "portal.",
+     * middleware `auth, verified`). Staff pass this group too, so check what the customer may
+     * see (usually through their organization) in the controller.
+     *
+     * @param  Closure|string  $routes  a closure that registers routes, or a route file
+     * @param  string|null  $module  the module the routes belong to; they answer 404 while it is disabled
+     */
+    public static function portalRoutes(Closure|string $routes, ?string $module = null): void
+    {
+        app(self::class)->routes['portal'][] = [$routes, $module];
+    }
+
+    /**
      * Routes for the personal settings area, loaded inside `auth, verified`.
      *
      * @param  Closure|string  $routes  a closure that registers routes, or a route file
@@ -81,7 +94,7 @@ class KiteDesk
     /**
      * Called from the core route files to load what packages registered for an area.
      *
-     * @param  'admin'|'agent'|'settings'  $area
+     * @param  'admin'|'agent'|'portal'|'settings'  $area
      */
     public static function loadRoutes(string $area): void
     {

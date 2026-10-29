@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Support\Extensions\KiteDesk;
 use App\Http\Controllers\Portal\SatisfactionController;
 use App\Http\Controllers\Portal\TicketController;
 use App\Http\Controllers\Portal\TicketReplyController;
@@ -14,4 +15,6 @@ Route::prefix('portal')
         Route::resource('tickets', TicketController::class)->only(['index', 'create', 'store', 'show']);
         Route::post('tickets/{ticket}/replies', [TicketReplyController::class, 'store'])->name('tickets.replies.store');
         Route::post('tickets/{ticket}/satisfaction', [SatisfactionController::class, 'portal'])->name('tickets.satisfaction.store');
+
+        KiteDesk::loadRoutes('portal');
     });

@@ -14,7 +14,9 @@ import {
 import { UserMenuContent } from '@/components/user-menu-content';
 import { useNewRequestUrl } from '@/hooks/use-new-request-url';
 import { useSocketIdHeader } from '@/hooks/use-socket-id-header';
+import { useModules } from '@/hooks/use-modules';
 import { useTranslation } from '@/hooks/use-translation';
+import { registeredPortalNav } from '@/lib/extensions';
 import { cn } from '@/lib/utils';
 import { login, register } from '@/routes';
 import { index as agentTickets } from '@/routes/agent/tickets';
@@ -31,6 +33,7 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
     const path = page.url.split('?')[0];
     const { t } = useTranslation();
     const newRequestUrl = useNewRequestUrl();
+    const { isEnabled } = useModules();
 
     useSocketIdHeader(Boolean(auth.user));
 
@@ -44,13 +47,30 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
             ? {
                   title: t('My requests'),
                   href: portalTickets(),
-                  active: path.startsWith('/portal'),
+                  active:
+                      path.startsWith('/portal') &&
+                      !registeredPortalNav().some((item) =>
+                          path.startsWith(item.match ?? item.href),
+                      ),
               }
             : {
                   title: t('Check a request'),
                   href: guestCheck(),
                   active: path.startsWith('/requests/check'),
               },
+        ...(auth.user
+            ? registeredPortalNav()
+                  .filter(
+                      (item) =>
+                          (!item.module || isEnabled(item.module)) &&
+                          (!item.visible || item.visible(page.props)),
+                  )
+                  .map((item) => ({
+                      title: t(item.title),
+                      href: item.href,
+                      active: path.startsWith(item.match ?? item.href),
+                  }))
+            : []),
     ];
 
     return (

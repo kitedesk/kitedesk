@@ -162,3 +162,28 @@ export function registerTicketPanel(
 export function registeredTicketPanels(): readonly TicketPanel[] {
     return ticketPanels;
 }
+
+export type PortalNavItem = {
+    title: string;
+    href: string;
+    /** The module the page belongs to; hidden while an admin has it switched off. */
+    module?: string;
+    /** The path prefix that marks the item as current. Defaults to `href`. */
+    match?: string;
+    /** Extra check on the shared page props, e.g. that the customer has an organization. */
+    visible?: (props: Record<string, unknown>) => boolean;
+};
+
+const portalNavItems: PortalNavItem[] = [];
+
+/**
+ * Adds a link to the customer portal's header, after "My requests". Titles are English
+ * keys, translated where they are rendered. Only shown to signed-in customers.
+ */
+export function registerPortalNav(item: PortalNavItem): void {
+    portalNavItems.push(item);
+}
+
+export function registeredPortalNav(): readonly PortalNavItem[] {
+    return portalNavItems;
+}
