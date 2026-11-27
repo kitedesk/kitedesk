@@ -18,5 +18,7 @@ Route::middleware('can:view,ticket')->group(function () {
         Route::post('tickets/{ticket}/jira', [JiraIssueController::class, 'store'])->name('tickets.jira.store');
         Route::post('tickets/{ticket}/jira/link', [JiraIssueController::class, 'link'])->name('tickets.jira.link');
         Route::delete('tickets/{ticket}/jira/{jiraIssueLink}', [JiraIssueController::class, 'destroy'])->name('tickets.jira.destroy');
+        Route::get('tickets/{ticket}/jira/{jiraIssueLink}/transitions', [JiraIssueController::class, 'transitions'])->name('tickets.jira.transitions');
+        Route::post('tickets/{ticket}/jira/{jiraIssueLink}/transitions', [JiraIssueController::class, 'transition'])->name('tickets.jira.transition');
     });
 });

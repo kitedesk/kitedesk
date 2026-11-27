@@ -29,14 +29,14 @@ class JiraServiceProvider extends ServiceProvider
             id: JiraModule::ID,
             name: 'Jira',
             description: 'Create and link Jira Cloud issues from tickets, and keep tickets up to date as the issues change.',
-            version: '1.0.0',
+            version: '1.1.0',
             icon: 'square-kanban',
             permissions: [
                 new PermissionDefinition(
                     name: 'jira.manage_links',
                     label: __('Create and link Jira issues'),
                     group: __('Tickets'),
-                    description: __('Create Jira issues from tickets, and link or unlink existing ones.'),
+                    description: __('Create Jira issues from tickets, link or unlink existing ones, and change their status.'),
                     grantToAgents: true,
                 ),
             ],

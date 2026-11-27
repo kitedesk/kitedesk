@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Agent;
 
 use App\Domain\Jira\Actions\CreateIssue;
 use App\Domain\Jira\Actions\LinkIssue;
+use App\Domain\Jira\Actions\SyncIssue;
 use App\Domain\Jira\Actions\UnlinkIssue;
 use App\Domain\Jira\Exceptions\JiraException;
 use App\Domain\Jira\Models\JiraIssueLink;
@@ -104,6 +105,41 @@ class JiraIssueController extends Controller
         }
 
         $this->jira(fn () => $linkIssue->handle($ticket, $key, $request->user()));
+
+        return $this->respond($request, $ticket);
+    }
+
+    /**
+     * The statuses the issue can move to from where it is, as its Jira workflow allows.
+     */
+    public function transitions(Ticket $ticket, JiraIssueLink $jiraIssueLink): JsonResponse
+    {
+        abort_unless($jiraIssueLink->ticket_id === $ticket->id, 404);
+
+        $transitions = $this->jira(fn () => JiraClient::make()->transitions($jiraIssueLink->issue_key));
+
+        return response()->json(['transitions' => array_map(fn (array $transition): array => [
+            'id' => $transition['id'],
+            'name' => $transition['name'],
+            'to' => $transition['to']['name'],
+            'to_category' => $transition['to']['category']?->value,
+        ], $transitions)]);
+    }
+
+    /**
+     * Moves the issue in Jira, then brings the change to the ticket right away (note and
+     * status rules), as Jira's webhook would.
+     */
+    public function transition(Request $request, Ticket $ticket, JiraIssueLink $jiraIssueLink, SyncIssue $syncIssue): JsonResponse
+    {
+        abort_unless($jiraIssueLink->ticket_id === $ticket->id, 404);
+        $input = $request->validate(['transition' => ['required', 'string', 'max:50']]);
+
+        $this->jira(function () use ($jiraIssueLink, $input, $syncIssue, $request): void {
+            $client = JiraClient::make();
+            $client->transition($jiraIssueLink->issue_key, $input['transition']);
+            $syncIssue->handle($jiraIssueLink, $client->issue($jiraIssueLink->issue_key), $request->user());
+        });
 
         return $this->respond($request, $ticket);
     }

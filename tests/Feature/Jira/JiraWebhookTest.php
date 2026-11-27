@@ -2,6 +2,7 @@
 
 use App\Domain\Jira\Enums\StatusCategory;
 use App\Domain\Jira\Models\JiraIssueLink;
+use App\Domain\Jira\Support\JiraSettings;
 use App\Domain\Support\Extensions\ModuleRegistry;
 use App\Domain\Tickets\Enums\TicketStatus;
 use App\Domain\Tickets\Models\Ticket;
@@ -190,4 +191,34 @@ test('comments in wiki markup are converted', function () {
         ->toContain('<strong>v2.3</strong>')
         ->toContain('<a href="https://docs.test/2.3"')
         ->toContain('<li>export</li>');
+});
+
+test('a rule for an exact Jira status wins over its group, including "don\'t change"', function () {
+    // "Waiting for customer" is in the In progress group (mapped to Open), but has its own rule.
+    $pending = CustomStatuses::defaultFor(TicketStatus::Pending);
+    $settings = JiraSettings::current();
+    (new JiraSettings(
+        siteUrl: $settings->siteUrl,
+        email: $settings->email,
+        apiToken: $settings->apiToken,
+        webhookSecret: $settings->webhookSecret,
+        statusMapping: $settings->statusMapping,
+        statusRules: [
+            ['status_id' => '20001', 'status_name' => 'Waiting for customer', 'ticket_status_id' => $pending->id],
+            ['status_id' => '20002', 'status_name' => "Won't fix", 'ticket_status_id' => null],
+        ],
+    ))->save();
+    $this->ticket->update(['ticket_status_id' => $this->open->id]);
+
+    $moved = issueMoved('Waiting for customer', 'indeterminate');
+    $moved['issue']['fields']['status']['id'] = '20001';
+    deliver($moved)->assertAccepted();
+    expect($this->ticket->refresh()->ticket_status_id)->toBe($pending->id);
+
+    // Done would solve the ticket, but this Done status says to leave it.
+    $wontFix = issueMoved("Won't fix", 'done', from: 'Waiting for customer');
+    $wontFix['issue']['fields']['status']['id'] = '20002';
+    deliver($wontFix)->assertAccepted();
+    expect($this->ticket->refresh()->ticket_status_id)->toBe($pending->id)
+        ->and($this->link->refresh()->status_id)->toBe('20002');
 });

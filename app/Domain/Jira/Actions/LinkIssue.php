@@ -35,6 +35,7 @@ class LinkIssue
             'issue_key' => $issue['key'],
             'summary' => $issue['summary'],
             'issue_type' => $issue['issue_type'],
+            'status_id' => $issue['status_id'],
             'status_name' => $issue['status_name'],
             'status_category' => $issue['status_category'],
             'resolution' => $issue['resolution'],

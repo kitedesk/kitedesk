@@ -5,6 +5,7 @@ namespace App\Domain\Jira\Actions;
 use App\Domain\Jira\Models\JiraIssueLink;
 use App\Domain\Jira\Support\JiraClient;
 use App\Domain\Tickets\Actions\AddMessage;
+use App\Models\User;
 
 /**
  * Takes in what Jira says an issue looks like now (from a webhook or the periodic refresh).
@@ -18,8 +19,9 @@ class SyncIssue
 
     /**
      * @param  Issue  $issue
+     * @param  User|null  $actor  the agent who changed the status from KiteDesk, named in the note
      */
-    public function handle(JiraIssueLink $link, array $issue): void
+    public function handle(JiraIssueLink $link, array $issue, ?User $actor = null): void
     {
         $previousStatus = $link->status_name;
 
@@ -27,6 +29,7 @@ class SyncIssue
             'issue_key' => $issue['key'],
             'summary' => $issue['summary'],
             'issue_type' => $issue['issue_type'],
+            'status_id' => $issue['status_id'],
             'status_name' => $issue['status_name'],
             'status_category' => $issue['status_category'],
             'resolution' => $issue['resolution'],
@@ -45,17 +48,22 @@ class SyncIssue
         $this->addMessage->handle(
             $link->ticket,
             null,
-            '<p>'.e(__('Jira :key moved from :from to :to.', [
-                'key' => $link->issue_key,
-                'from' => $previousStatus ?? '—',
-                'to' => $issue['status_name'],
-            ])).($issue['resolution'] !== null ? ' '.e(__('Resolution: :resolution.', ['resolution' => $issue['resolution']])) : '').'</p>',
+            '<p>'.e($actor !== null
+                ? __(':name moved Jira :key from :from to :to.', [
+                    'name' => $actor->name,
+                    'key' => $link->issue_key,
+                    'from' => $previousStatus ?? '—',
+                    'to' => $issue['status_name'],
+                ])
+                : __('Jira :key moved from :from to :to.', [
+                    'key' => $link->issue_key,
+                    'from' => $previousStatus ?? '—',
+                    'to' => $issue['status_name'],
+                ])).($issue['resolution'] !== null ? ' '.e(__('Resolution: :resolution.', ['resolution' => $issue['resolution']])) : '').'</p>',
             isInternal: true,
             metadata: ['jira' => ['issue_key' => $link->issue_key, 'kind' => 'status']],
         );
 
-        if ($issue['status_category'] !== null) {
-            $this->applyStatusMapping->handle($link->ticket->refresh(), $issue['status_category']);
-        }
+        $this->applyStatusMapping->handle($link->ticket->refresh(), $issue['status_id'], $issue['status_category']);
     }
 }

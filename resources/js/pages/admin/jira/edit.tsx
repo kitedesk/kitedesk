@@ -1,5 +1,5 @@
 import { Head, useForm, useHttp } from '@inertiajs/react';
-import { Copy, PlugZap, RefreshCw, TriangleAlert } from 'lucide-react';
+import { Copy, PlugZap, RefreshCw, TriangleAlert, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { ConfirmAction } from '@/components/admin/confirm-action';
@@ -38,6 +38,12 @@ type Settings = {
     default_project: string;
     default_issue_type: string;
     status_mapping: Record<string, string>;
+    /** Rules for exact Jira statuses; an empty ticket status means "don't change". */
+    status_rules: {
+        status_id: string;
+        status_name: string;
+        ticket_status_id: string;
+    }[];
 };
 
 const NONE = '__none';
@@ -50,6 +56,7 @@ export default function JiraSettingsPage({
     categories,
     statuses,
     projects,
+    jiraStatuses,
     webhook,
 }: {
     settings: Settings;
@@ -60,6 +67,8 @@ export default function JiraSettingsPage({
     statuses: CustomStatusOption[];
     /** Loaded after the page, since it asks Jira. */
     projects?: { key: string; name: string }[];
+    /** Jira's workflow statuses; loaded after the page, since it asks Jira. */
+    jiraStatuses?: { id: string; name: string; category: string | null }[];
     webhook: { url: string; secret: string | null };
 }) {
     const { t } = useTranslation();
@@ -354,6 +363,161 @@ export default function JiraSettingsPage({
                         })}
                     </div>
                 </section>
+
+                {connected && (
+                    <section className="space-y-4">
+                        <h2 className="font-medium">
+                            {t('Rules for specific Jira statuses')}
+                        </h2>
+                        <p className="text-sm text-muted-foreground">
+                            {t(
+                                'For statuses that need their own handling, such as "Waiting for customer" or "Won\'t fix". A rule here wins over its group above.',
+                            )}
+                        </p>
+                        {form.data.status_rules.length > 0 && (
+                            <div className="divide-y rounded-lg border">
+                                {form.data.status_rules.map((rule, index) => (
+                                    <div
+                                        key={rule.status_id}
+                                        className="grid items-center gap-2 p-3 sm:grid-cols-[12rem_1fr_auto]"
+                                    >
+                                        <Label>{rule.status_name}</Label>
+                                        <CustomStatusSelect
+                                            value={
+                                                rule.ticket_status_id === ''
+                                                    ? undefined
+                                                    : rule.ticket_status_id
+                                            }
+                                            statuses={statuses}
+                                            placeholder={t("Don't change")}
+                                            onChange={(id) =>
+                                                form.setData(
+                                                    'status_rules',
+                                                    form.data.status_rules.map(
+                                                        (current, i) =>
+                                                            i === index
+                                                                ? {
+                                                                      ...current,
+                                                                      ticket_status_id:
+                                                                          id,
+                                                                  }
+                                                                : current,
+                                                    ),
+                                                )
+                                            }
+                                        />
+                                        <div className="flex gap-1">
+                                            {rule.ticket_status_id !== '' && (
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() =>
+                                                        form.setData(
+                                                            'status_rules',
+                                                            form.data.status_rules.map(
+                                                                (current, i) =>
+                                                                    i === index
+                                                                        ? {
+                                                                              ...current,
+                                                                              ticket_status_id:
+                                                                                  '',
+                                                                          }
+                                                                        : current,
+                                                            ),
+                                                        )
+                                                    }
+                                                >
+                                                    {t("Don't change")}
+                                                </Button>
+                                            )}
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                title={t('Remove rule')}
+                                                onClick={() =>
+                                                    form.setData(
+                                                        'status_rules',
+                                                        form.data.status_rules.filter(
+                                                            (_, i) =>
+                                                                i !== index,
+                                                        ),
+                                                    )
+                                                }
+                                            >
+                                                <X />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                        {jiraStatuses === undefined ? (
+                            <Skeleton className="h-9 w-64" />
+                        ) : jiraStatuses.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">
+                                {t('Could not load the statuses from Jira.')}
+                            </p>
+                        ) : (
+                            <Select
+                                value=""
+                                onValueChange={(id) => {
+                                    const status = jiraStatuses.find(
+                                        (item) => item.id === id,
+                                    );
+
+                                    if (status) {
+                                        form.setData('status_rules', [
+                                            ...form.data.status_rules,
+                                            {
+                                                status_id: status.id,
+                                                status_name: status.name,
+                                                ticket_status_id: '',
+                                            },
+                                        ]);
+                                    }
+                                }}
+                            >
+                                <SelectTrigger className="w-64">
+                                    <SelectValue
+                                        placeholder={t('Add a rule for…')}
+                                    />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {jiraStatuses
+                                        .filter(
+                                            (status) =>
+                                                !form.data.status_rules.some(
+                                                    (rule) =>
+                                                        rule.status_id ===
+                                                        status.id,
+                                                ),
+                                        )
+                                        .map((status) => (
+                                            <SelectItem
+                                                key={status.id}
+                                                value={status.id}
+                                            >
+                                                {status.name}
+                                                {status.category && (
+                                                    <span className="text-xs text-muted-foreground">
+                                                        {
+                                                            categories.find(
+                                                                (category) =>
+                                                                    category.value ===
+                                                                    status.category,
+                                                            )?.label
+                                                        }
+                                                    </span>
+                                                )}
+                                            </SelectItem>
+                                        ))}
+                                </SelectContent>
+                            </Select>
+                        )}
+                    </section>
+                )}
 
                 <div className="flex justify-end">
                     <Button type="submit" disabled={form.processing}>

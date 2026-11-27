@@ -37,6 +37,11 @@ class JiraSettingsController extends Controller
                 'default_project' => $settings->defaultProject ?? '',
                 'default_issue_type' => $settings->defaultIssueType ?? '',
                 'status_mapping' => collect($settings->statusMapping)->map(fn (?int $id): string => $id !== null ? (string) $id : '')->all(),
+                'status_rules' => array_map(fn (array $rule): array => [
+                    'status_id' => $rule['status_id'],
+                    'status_name' => $rule['status_name'],
+                    'ticket_status_id' => $rule['ticket_status_id'] !== null ? (string) $rule['ticket_status_id'] : '',
+                ], $settings->statusRules),
             ],
             'hasToken' => $settings->apiToken !== null,
             'connected' => $settings->isConnected(),
@@ -44,6 +49,7 @@ class JiraSettingsController extends Controller
             'categories' => EnumOptions::for(StatusCategory::class),
             'statuses' => CustomStatuses::options(),
             'projects' => Inertia::defer(fn (): array => $this->projects($settings)),
+            'jiraStatuses' => Inertia::defer(fn (): array => $this->jiraStatuses($settings)),
             'webhook' => [
                 'url' => route('jira.webhook'),
                 'secret' => $settings->webhookSecret,
@@ -114,6 +120,28 @@ class JiraSettingsController extends Controller
             return response()->json(['issue_types' => JiraClient::make()->issueTypes($project)]);
         } catch (JiraException $exception) {
             throw ValidationException::withMessages(['jira' => $exception->getMessage()]);
+        }
+    }
+
+    /**
+     * Jira's statuses, for rules on exact statuses.
+     *
+     * @return list<array{id: string, name: string, category: string|null}>
+     */
+    private function jiraStatuses(JiraSettings $settings): array
+    {
+        if (! $settings->isConnected()) {
+            return [];
+        }
+
+        try {
+            return array_map(fn (array $status): array => [
+                'id' => $status['id'],
+                'name' => $status['name'],
+                'category' => $status['category']?->value,
+            ], JiraClient::make($settings)->statuses());
+        } catch (JiraException) {
+            return [];
         }
     }
 

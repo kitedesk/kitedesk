@@ -132,3 +132,31 @@ test('testing other credentials leaves the saved connection\'s state alone', fun
 
     expect(JiraHealth::error())->not->toBeNull();
 });
+
+test('admins add rules for exact Jira statuses, picked from the statuses Jira has', function () {
+    $this->actingAs($this->admin)->put(route('admin.jira.update'), jiraForm());
+    Http::fake([
+        'acme.atlassian.net/rest/api/3/project/search*' => Http::response(['values' => []]),
+        'acme.atlassian.net/rest/api/3/status' => Http::response([
+            ['id' => '20001', 'name' => 'Waiting for customer', 'statusCategory' => ['key' => 'indeterminate']],
+            ['id' => '10000', 'name' => 'Backlog', 'statusCategory' => ['key' => 'new']],
+        ]),
+    ]);
+
+    $this->actingAs($this->admin)
+        ->get(route('admin.jira.edit'))
+        ->assertInertia(fn (Assert $page) => $page->loadDeferredProps(fn (Assert $reload) => $reload
+            ->where('jiraStatuses.0.name', 'Backlog')
+            ->where('jiraStatuses.1.category', 'indeterminate')));
+
+    $pending = CustomStatuses::defaultFor(TicketStatus::Pending);
+    $this->actingAs($this->admin)->put(route('admin.jira.update'), jiraForm(['status_rules' => [
+        ['status_id' => '20001', 'status_name' => 'Waiting for customer', 'ticket_status_id' => $pending->id],
+        ['status_id' => '10000', 'status_name' => 'Backlog', 'ticket_status_id' => ''],
+    ]]))->assertSessionHasNoErrors();
+
+    $settings = JiraSettings::current();
+    expect($settings->ticketStatusFor('20001', StatusCategory::InProgress))->toBe($pending->id)
+        ->and($settings->ticketStatusFor('10000', StatusCategory::ToDo))->toBeNull()
+        ->and($settings->ticketStatusFor('99999', StatusCategory::Done))->toBe(CustomStatuses::defaultFor(TicketStatus::Solved)->id);
+});

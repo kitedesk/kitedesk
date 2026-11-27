@@ -23,6 +23,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $issue_key
  * @property string $summary
  * @property string|null $issue_type
+ * @property string|null $status_id
  * @property string|null $status_name
  * @property StatusCategory|null $status_category
  * @property string|null $resolution
@@ -35,7 +36,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property CarbonImmutable|null $updated_at
  * @property-read Ticket $ticket
  */
-#[Fillable(['ticket_id', 'issue_id', 'issue_key', 'summary', 'issue_type', 'status_name', 'status_category', 'resolution', 'assignee_name', 'url', 'deleted_at_jira', 'linked_by', 'last_synced_at'])]
+#[Fillable(['ticket_id', 'issue_id', 'issue_key', 'summary', 'issue_type', 'status_id', 'status_name', 'status_category', 'resolution', 'assignee_name', 'url', 'deleted_at_jira', 'linked_by', 'last_synced_at'])]
 #[UseFactory(JiraIssueLinkFactory::class)]
 class JiraIssueLink extends Model
 {
