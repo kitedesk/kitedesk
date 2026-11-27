@@ -99,6 +99,12 @@ export function RequestConversation({
                     <RichTextEditor
                         value={form.data.body}
                         onChange={(html) => form.setData('body', html)}
+                        onPasteFiles={(files) =>
+                            form.setData('attachments', [
+                                ...form.data.attachments,
+                                ...files,
+                            ])
+                        }
                         placeholder={
                             isResolved
                                 ? t('Reply to reopen this request…')

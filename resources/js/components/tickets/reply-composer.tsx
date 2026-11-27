@@ -234,6 +234,12 @@ export function ReplyComposer({
             <RichTextEditor
                 ref={editor}
                 value={form.data.body}
+                onPasteFiles={(files) =>
+                    form.setData('attachments', [
+                        ...form.data.attachments,
+                        ...files,
+                    ])
+                }
                 onChange={(html) => {
                     form.setData('body', html);
                     onDraftChange?.(hasContent(html));
