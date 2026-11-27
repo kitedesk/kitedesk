@@ -274,9 +274,9 @@ function MenuGroup({
                         }
                     >
                         <Icon />
-                        <span>{title}</span>
+                        <span className="truncate">{title}</span>
                         {alert && !open && (
-                            <span className="size-1.5 rounded-full bg-red-500" />
+                            <span className="size-1.5 shrink-0 rounded-full bg-red-500" />
                         )}
                         <ChevronRight className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-90" />
                     </SidebarMenuButton>
@@ -317,7 +317,11 @@ function SubLink({
 }) {
     return (
         <SidebarMenuSubItem>
-            <SidebarMenuSubButton asChild isActive={active}>
+            <SidebarMenuSubButton
+                asChild
+                isActive={active}
+                className="h-auto min-h-7 py-1"
+            >
                 <Link href={href} prefetch>
                     {Icon && <Icon />}
                     {dot && (
@@ -327,11 +331,13 @@ function SubLink({
                             />
                         </span>
                     )}
-                    <span>{children}</span>
+                    <span className="line-clamp-2 leading-snug">
+                        {children}
+                    </span>
                     {count !== undefined && count > 0 && (
                         <span
                             className={cn(
-                                'ml-auto text-xs text-sidebar-foreground/70 tabular-nums',
+                                'ml-auto shrink-0 text-xs text-sidebar-foreground/70 tabular-nums',
                                 urgent && 'text-red-600 dark:text-red-400',
                             )}
                         >
