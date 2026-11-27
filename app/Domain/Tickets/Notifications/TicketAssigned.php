@@ -27,6 +27,8 @@ class TicketAssigned extends Notification implements ShouldQueue
     {
         return (new MailMessage)
             ->subject(__('[:number] Assigned to you: :subject', ['number' => $this->ticket->reference(), 'subject' => $this->ticket->subject]))
+            // The ticket's subject as the heading, instead of a generic "Hello!".
+            ->greeting($this->ticket->subject)
             ->line(__(':name assigned ticket :number to you.', ['name' => $this->assignedBy->name ?? __('The system'), 'number' => $this->ticket->reference()]))
             ->action(__('Open ticket'), route('agent.tickets.show', $this->ticket));
     }

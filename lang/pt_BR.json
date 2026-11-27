@@ -683,7 +683,6 @@
     "Helpdesk name": "Nome da central de atendimento",
     "Helpful votes": "Votos úteis",
     "Hi :name,": "Olá, :name,",
-    "Hi Jane, we replied to your request.": "Olá, Jane, respondemos à sua solicitação.",
     "Hi {{requester.first_name}},\n\nThanks for reaching out. We received your request and will get back to you as soon as possible. Your reference is {{ticket.number}}.\n\nTo add more details, just reply to this email.": "Olá, {{requester.first_name}},\n\nObrigado pelo contato. Recebemos sua solicitação e responderemos o quanto antes. Seu número de referência é {{ticket.number}}.\n\nPara acrescentar detalhes, é só responder a este e-mail.",
     "Hi {{requester.first_name}},\n\nWe marked your request {{ticket.number}} as solved. If anything is still not right, just reply to this email and we'll pick it up again.": "Olá, {{requester.first_name}},\n\nMarcamos sua solicitação {{ticket.number}} como resolvida. Se algo ainda não estiver certo, é só responder a este e-mail que retomaremos o atendimento.",
     "Hi {{requester.first_name}}, we are still waiting for your answer. Just reply to this message.": "Olá, {{requester.first_name}}, ainda aguardamos sua resposta. É só responder a esta mensagem.",
@@ -1547,7 +1546,6 @@
     "The old secret stops working immediately. You'll see the new one once.": "O segredo antigo deixa de funcionar imediatamente. Você verá o novo uma única vez.",
     "The page expired, so nothing was saved. Please try again.": "A página expirou e nada foi salvo. Tente novamente.",
     "The policy applies when the ticket matches all of these. Leave a condition empty to match any value.": "A política se aplica quando o chamado atende a todas estas condições. Deixe uma condição vazia para aceitar qualquer valor.",
-    "The reply is shown here.": "A resposta aparece aqui.",
     "the requester": "quem solicitou",
     "The run did not finish.": "A execução não terminou.",
     "The run stopped after :count steps.": "A execução parou após :count etapas.",
@@ -2177,5 +2175,16 @@
     "Could not load the statuses from Jira.": "Não foi possível carregar os status do Jira.",
     "Add a rule for…": "Adicionar uma regra para…",
     "Create Jira issues from tickets, link or unlink existing ones, and change their status.": "Criar issues do Jira a partir de chamados, vincular ou desvincular issues existentes e alterar o status delas.",
-    ":name moved Jira :key from :from to :to.": ":name moveu a issue :key do Jira de :from para :to."
+    ":name moved Jira :key from :from to :to.": ":name moveu a issue :key do Jira de :from para :to.",
+    "Ticket reply": "Resposta a chamado",
+    "Team notification": "Notificação da equipe",
+    "Email preview": "Prévia do e-mail",
+    "A new logo shows in the preview once it is saved.": "Um novo logotipo aparece na prévia depois de salvo.",
+    "You get this as a member of the support team.": "Você recebe isto como membro da equipe de suporte.",
+    "You get this because you have a request with us.": "Você recebe isto porque tem uma solicitação conosco.",
+    "Export fails for large files": "A exportação falha com arquivos grandes",
+    "Thanks for the details, Jane. We found the cause…": "Obrigado pelos detalhes, Jane. Encontramos a causa…",
+    "Sent by :name": "Enviado por :name",
+    "Earlier in this conversation": "Anteriormente nesta conversa",
+    "You get this because your request was solved.": "Você recebe isto porque sua solicitação foi resolvida."
 }

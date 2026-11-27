@@ -1,27 +1,13 @@
-<x-mail::layout>
-    {{-- Header --}}
-    <x-slot:header>
-        <x-mail::header :url="config('app.url')">
-            {{ \App\Domain\Branding\Branding::current()->name() }}
-        </x-mail::header>
-    </x-slot:header>
+{{-- Plain-text notification emails, with the same footer as the HTML version. --}}
+@php($branding = \App\Domain\Branding\Branding::current())
+{{ $slot }}
 
-    {{-- Body --}}
-    {{ $slot }}
+@isset($subcopy)
+{{ $subcopy }}
 
-    {{-- Subcopy --}}
-    @isset($subcopy)
-        <x-slot:subcopy>
-            <x-mail::subcopy>
-                {{ $subcopy }}
-            </x-mail::subcopy>
-        </x-slot:subcopy>
-    @endisset
-
-    {{-- Footer --}}
-    <x-slot:footer>
-        <x-mail::footer>
-            © {{ date('Y') }} {{ \App\Domain\Branding\Branding::current()->name() }}. @lang('All rights reserved.')
-        </x-mail::footer>
-    </x-slot:footer>
-</x-mail::layout>
+@endisset
+--
+{{ __('Sent by :name', ['name' => $branding->name()]) }}
+@if ($branding->emailFooter)
+{{ $branding->emailFooter }}
+@endif

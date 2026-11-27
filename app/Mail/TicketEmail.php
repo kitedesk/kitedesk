@@ -9,6 +9,7 @@ use App\Domain\Mail\Models\Mailbox;
 use App\Domain\Mail\Support\MessageIds;
 use App\Domain\Mail\Support\ReplyParser;
 use App\Domain\Mail\Support\TemplateRenderer;
+use App\Domain\Support\RichText;
 use App\Domain\Tickets\Models\Ticket;
 use App\Domain\Tickets\Models\TicketMessage;
 use App\Models\User;
@@ -21,6 +22,7 @@ use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Mail\Mailables\Headers;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 /**
  * Every ticket email: replies, auto-replies, solved notices and agent alerts.
@@ -75,12 +77,20 @@ class TicketEmail extends Mailable implements ShouldQueue
     public function content(): Content
     {
         $variables = $this->variables();
+        $intro = TemplateRenderer::html($this->template()->body, $variables);
 
         return new Content(
             view: 'mail.ticket',
+            text: 'mail.text.ticket',
             with: [
                 'marker' => $this->event->isForStaff() ? null : __(ReplyParser::MARKER),
-                'intro' => TemplateRenderer::html($this->template()->body, $variables),
+                'intro' => $intro,
+                'subject' => $this->ticket->subject,
+                // The inbox preview: the start of the reply, else of the template text.
+                'preheader' => Str::limit(RichText::toPlainText($this->ticketMessage->body ?? $intro), 140),
+                'reason' => $this->recipient->isStaff()
+                    ? __('You get this as a member of the support team.')
+                    : __('You get this because you have a request with us.'),
                 'reply' => $this->ticketMessage,
                 'history' => $this->history(),
                 'url' => $variables['ticket.url'],

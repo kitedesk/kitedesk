@@ -6,6 +6,7 @@ import { TextField } from '@/components/admin/text-field';
 import { ActiveSwitch } from '@/components/sla/active-switch';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { EmailPreviewFrame } from '@/components/admin/email-preview-frame';
 import { useEntitlements } from '@/hooks/use-entitlements';
 import { useTranslation } from '@/hooks/use-translation';
 import { destroy, edit, index, update } from '@/routes/admin/email-templates';
@@ -186,24 +187,20 @@ export default function EditEmailTemplate({
                     <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
                         {t('Preview')}
                     </p>
-                    <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
-                        <div className="border-b bg-muted/40 px-4 py-2 text-sm">
-                            <span className="text-muted-foreground">
-                                {t('Subject')}:
-                            </span>{' '}
-                            <span className="font-medium">
-                                {fill(form.data.subject, values)}
-                            </span>
-                        </div>
-                        <div className="px-4 py-4 text-sm whitespace-pre-line">
-                            {fill(form.data.body, values)}
-                        </div>
-                        {template.event === 'agent_reply' && (
-                            <div className="mx-4 mb-4 rounded-md border-l-2 border-primary bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
-                                {t('The reply is shown here.')}
-                            </div>
-                        )}
+                    <div className="rounded-lg border bg-muted/40 px-4 py-2 text-sm">
+                        <span className="text-muted-foreground">
+                            {t('Subject')}:
+                        </span>{' '}
+                        <span className="font-medium">
+                            {fill(form.data.subject, values)}
+                        </span>
                     </div>
+                    <EmailPreviewFrame
+                        params={{
+                            event: template.event,
+                            body: form.data.body,
+                        }}
+                    />
                 </section>
             </div>
         </>

@@ -164,6 +164,15 @@ final readonly class Branding
     }
 
     /**
+     * The dark-mode logo for emails, shown by clients that support dark mode (Apple Mail,
+     * Outlook apps). SVG is left out, as for `emailLogoUrl()`.
+     */
+    public function emailLogoDarkUrl(): ?string
+    {
+        return $this->logoDark !== null && ! str_ends_with(strtolower($this->logoDark), '.svg') ? $this->logoDarkUrl() : null;
+    }
+
+    /**
      * Button and accent color for emails.
      */
     public function emailColor(): string

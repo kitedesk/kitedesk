@@ -28,6 +28,8 @@ class SlaBreached extends Notification implements ShouldQueue
         return (new MailMessage)
             ->error()
             ->subject(__('[:number] SLA breached: :subject', ['number' => $this->ticket->reference(), 'subject' => $this->ticket->subject]))
+            // The ticket's subject as the heading, instead of a generic "Whoops!".
+            ->greeting($this->ticket->subject)
             ->line(__('Ticket :number has missed its service level target.', ['number' => $this->ticket->reference()]))
             ->action(__('Open ticket'), route('agent.tickets.show', $this->ticket));
     }
