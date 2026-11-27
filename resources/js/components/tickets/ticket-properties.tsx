@@ -247,7 +247,8 @@ function Property({
     children: ReactNode;
 }) {
     return (
-        <div className="grid gap-1.5">
+        // min-w-0 lets the property shrink to its grid column instead of overflowing it.
+        <div className="grid min-w-0 gap-1.5">
             <Label className="text-xs font-medium text-muted-foreground">
                 {label}
                 {required && <span className="text-destructive"> *</span>}

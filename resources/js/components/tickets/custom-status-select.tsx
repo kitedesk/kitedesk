@@ -41,11 +41,16 @@ export function CustomStatusSelect({
             (status.is_active && !exclude.includes(status.category)),
     );
     const categories = [...new Set(choices.map((status) => status.category))];
+    const selected = statuses.find((status) => String(status.id) === value);
 
     return (
         <Select value={value} disabled={disabled} onValueChange={onChange}>
-            <SelectTrigger className={cn('h-9 w-full', className)}>
-                <SelectValue placeholder={placeholder} />
+            <SelectTrigger
+                className={cn('h-9 w-full min-w-0', className)}
+                // Long names are cut off; the full one shows on hover.
+                title={selected?.name}
+            >
+                <SelectValue placeholder={placeholder} className="min-w-0" />
             </SelectTrigger>
             <SelectContent>
                 {categories.map((category) => (
@@ -62,11 +67,13 @@ export function CustomStatusSelect({
                                 >
                                     <span
                                         className={cn(
-                                            'size-2 rounded-full',
+                                            'size-2 shrink-0 rounded-full',
                                             statusColors[status.color].dot,
                                         )}
                                     />
-                                    {status.name}
+                                    <span className="truncate">
+                                        {status.name}
+                                    </span>
                                 </SelectItem>
                             ))}
                     </SelectGroup>
