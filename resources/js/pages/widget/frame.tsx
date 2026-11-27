@@ -15,7 +15,7 @@ import { Label } from '@/components/ui/label';
 import { useTranslation } from '@/hooks/use-translation';
 import { formatFileSize } from '@/lib/tickets';
 import { store } from '@/routes/widget/tickets';
-import type { CategoryNode, FormFields } from '@/types';
+import type { CategoryNode, FormFields, TicketField } from '@/types';
 
 type Errors = Record<string, string | undefined>;
 
@@ -48,12 +48,14 @@ export default function WidgetFrame({
     brandName,
     categories,
     forms,
+    globalFields,
     defaultFormId,
 }: {
     greeting: string | null;
     brandName: string;
     categories: CategoryNode[];
     forms: FormFields;
+    globalFields: TicketField[];
     defaultFormId: number | null;
 }) {
     const { t } = useTranslation();
@@ -67,6 +69,7 @@ export default function WidgetFrame({
         forms,
         data.category_id,
         defaultFormId,
+        globalFields,
     );
 
     const set = <K extends keyof typeof emptyRequest>(
@@ -126,7 +129,11 @@ export default function WidgetFrame({
         for (const field of fields) {
             const value = data.custom_fields[field.key];
 
-            if (value !== undefined) {
+            if (Array.isArray(value)) {
+                value.forEach((item) =>
+                    body.append(`custom_fields[${field.key}][]`, item),
+                );
+            } else if (value !== undefined) {
                 body.append(
                     `custom_fields[${field.key}]`,
                     typeof value === 'boolean' ? (value ? '1' : '0') : value,

@@ -5,13 +5,14 @@ namespace App\Http\Requests\Api\V1;
 use App\Domain\Support\RichText;
 use App\Http\Requests\Concerns\ChoosesStatusAfter;
 use App\Http\Requests\Concerns\HasAttachments;
+use App\Http\Requests\Concerns\RequiresFieldsToResolve;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
 class StoreTicketMessageRequest extends FormRequest
 {
-    use ChoosesStatusAfter, HasAttachments;
+    use ChoosesStatusAfter, HasAttachments, RequiresFieldsToResolve;
 
     public function authorize(): bool
     {
@@ -45,6 +46,7 @@ class StoreTicketMessageRequest extends FormRequest
                     $validator->errors()->add('body', __('Write a message or attach a file.'));
                 }
             },
+            $this->requiredFieldsCheck(),
         ];
     }
 }

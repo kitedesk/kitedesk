@@ -2,12 +2,14 @@
 
 namespace App\Http\Requests\Agent;
 
+use App\Http\Requests\Concerns\RequiresFieldsToResolve;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Validator;
 
 class UpdateTicketRequest extends FormRequest
 {
-    use TicketPropertyRules;
+    use RequiresFieldsToResolve, TicketPropertyRules;
 
     public function authorize(): bool
     {
@@ -23,5 +25,13 @@ class UpdateTicketRequest extends FormRequest
             'subject' => ['sometimes', 'string', 'max:255'],
             ...$this->ticketPropertyRules(),
         ];
+    }
+
+    /**
+     * @return array<int, callable(Validator): void>
+     */
+    public function after(): array
+    {
+        return [$this->requiredFieldsCheck()];
     }
 }

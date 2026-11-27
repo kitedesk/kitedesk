@@ -50,7 +50,7 @@ class SaveSavedViewRequest extends FormRequest
         $current = (array) $this->validated('filter', []);
 
         $filters = collect([...Arr::except($saved->filters ?? [], 'view'), ...$current])
-            ->only(TicketFilters::KEYS)
+            ->filter(fn (mixed $value, string $key): bool => TicketFilters::isKey($key))
             ->filter(fn (mixed $value): bool => $value !== null && $value !== '')
             ->map(fn (mixed $value): string => (string) $value);
 

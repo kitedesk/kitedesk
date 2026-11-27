@@ -13,6 +13,7 @@ use App\Domain\Tickets\Events\TicketCreated;
 use App\Domain\Tickets\Models\Tag;
 use App\Domain\Tickets\Models\Ticket;
 use App\Domain\Tickets\Models\TicketCategory;
+use App\Domain\Tickets\Models\TicketField;
 use App\Domain\Tickets\Models\TicketForm;
 use App\Domain\Tickets\Routing\AutoAssigner;
 use App\Domain\Tickets\Routing\TicketRouter;
@@ -65,7 +66,7 @@ class CreateTicket
             'category_id' => $category?->id,
             'ticket_form_id' => ($category !== null ? $category->resolveForm() : TicketForm::default())?->id,
             'organization_id' => $requester->organization_id ?? Organization::forEmail($requester->email)?->id,
-            'custom_fields' => $attributes['custom_fields'] ?? null,
+            'custom_fields' => isset($attributes['custom_fields']) ? TicketField::normalizeValues($attributes['custom_fields']) : null,
         ]);
         $ticket->created_at = now();
         $ticket->last_customer_reply_at = ($author ?? $requester)->isStaff() && $channel !== TicketChannel::Internal ? null : $ticket->created_at;

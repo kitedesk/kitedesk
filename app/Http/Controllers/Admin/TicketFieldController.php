@@ -6,6 +6,7 @@ use App\Domain\Support\EnumOptions;
 use App\Domain\Support\Positions;
 use App\Domain\Tickets\Actions\Setup\SaveTicketField;
 use App\Domain\Tickets\Enums\TicketFieldType;
+use App\Domain\Tickets\Enums\TicketType;
 use App\Domain\Tickets\Models\TicketField;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\SaveTicketFieldRequest;
@@ -21,6 +22,7 @@ class TicketFieldController extends Controller
         return Inertia::render('admin/ticket-fields/index', [
             'fields' => TicketField::query()->ordered()->withCount('forms')->get(),
             'types' => EnumOptions::for(TicketFieldType::class),
+            'ticketTypes' => EnumOptions::for(TicketType::class),
         ]);
     }
 

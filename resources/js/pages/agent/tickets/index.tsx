@@ -7,6 +7,7 @@ import {
     Inbox,
     Kanban,
     List,
+    ListFilter,
     Search,
     UserRoundCheck,
     X,
@@ -24,7 +25,14 @@ import { PriorityLabel } from '@/components/tickets/priority-label';
 import { SlaTimer } from '@/components/tickets/sla-timer';
 import { StatusBadge } from '@/components/tickets/status-badge';
 import { UserAvatar } from '@/components/tickets/user-avatar';
+import { Button } from '@/components/ui/button';
 import { DrawCheckbox } from '@/components/ui/draw-checkbox';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import {
     Select,
@@ -47,6 +55,7 @@ import type {
     Paginated,
     Ticket,
     TicketBoardData,
+    TicketField,
     TicketOptions,
     TicketsLayout,
 } from '@/types';
@@ -280,6 +289,11 @@ export default function TicketsIndex({
                             onChange={(value) => visit({ category_id: value })}
                         />
                     )}
+                    <CustomFieldFilters
+                        fields={options.filterFields ?? []}
+                        filter={filters.filter ?? {}}
+                        onChange={(key, value) => visit({ [key]: value })}
+                    />
                     {activeFilterCount > 0 && (
                         <button
                             type="button"
@@ -291,6 +305,13 @@ export default function TicketsIndex({
                                     assignee_id: undefined,
                                     group_id: undefined,
                                     category_id: undefined,
+                                    ...Object.fromEntries(
+                                        Object.keys(filters.filter ?? {})
+                                            .filter((key) =>
+                                                key.startsWith(FIELD_PREFIX),
+                                            )
+                                            .map((key) => [key, undefined]),
+                                    ),
                                 })
                             }
                             className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
@@ -680,6 +701,90 @@ function FilterSelect({
                 ))}
             </SelectContent>
         </Select>
+    );
+}
+
+/**
+ * Filters on custom fields are named `field_<key>`, as the server expects.
+ */
+const FIELD_PREFIX = 'field_';
+
+/**
+ * Filters on drop-down, multi-select and checkbox custom fields. Fields with a value show
+ * as filters; the others are added from the "More filters" menu.
+ */
+function CustomFieldFilters({
+    fields,
+    filter,
+    onChange,
+}: {
+    fields: TicketField[];
+    filter: Record<string, string>;
+    onChange: (key: string, value: string | undefined) => void;
+}) {
+    const { t } = useTranslation();
+    const [added, setAdded] = useState<string[]>([]);
+    const isShown = (field: TicketField) =>
+        added.includes(field.key) || filter[FIELD_PREFIX + field.key];
+    const hidden = fields.filter((field) => !isShown(field));
+
+    if (fields.length === 0) {
+        return null;
+    }
+
+    return (
+        <>
+            {fields.filter(isShown).map((field) => (
+                <FilterSelect
+                    key={field.key}
+                    label={field.label}
+                    value={filter[FIELD_PREFIX + field.key]}
+                    options={
+                        field.type === 'checkbox'
+                            ? [
+                                  { value: 'true', label: t('Yes') },
+                                  { value: 'false', label: t('No') },
+                              ]
+                            : (field.options ?? []).map((option) => ({
+                                  value: option,
+                                  label: option,
+                              }))
+                    }
+                    onChange={(value) =>
+                        onChange(FIELD_PREFIX + field.key, value)
+                    }
+                />
+            ))}
+            {hidden.length > 0 && (
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 text-xs text-muted-foreground"
+                        >
+                            <ListFilter className="size-3.5" />
+                            {t('More filters')}
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start">
+                        {hidden.map((field) => (
+                            <DropdownMenuItem
+                                key={field.key}
+                                onSelect={() =>
+                                    setAdded((current) => [
+                                        ...current,
+                                        field.key,
+                                    ])
+                                }
+                            >
+                                {field.label}
+                            </DropdownMenuItem>
+                        ))}
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            )}
+        </>
     );
 }
 

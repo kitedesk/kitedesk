@@ -97,6 +97,21 @@ export function SavedViewSummary({
             `${t('Category')}: ${categoryName(filters.category_id)}`,
         filters.tag && `${t('Tag')}: ${filters.tag}`,
         filters.search && `${t('Search')}: “${filters.search}”`,
+        ...(options.filterFields ?? []).map((field) => {
+            const value = filters[`field_${field.key}`];
+
+            if (!value) {
+                return null;
+            }
+
+            return `${field.label}: ${
+                field.type === 'checkbox'
+                    ? value === 'true'
+                        ? t('Yes')
+                        : t('No')
+                    : value
+            }`;
+        }),
     ].filter(Boolean);
 
     return (

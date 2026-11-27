@@ -24,6 +24,16 @@ class TicketFieldResource extends ApiResource
             'type' => $this->type->value,
             /** @var list<string>|null */
             'options' => $this->options,
+            /** Shown on every ticket, whatever its form. */
+            'is_global' => $this->is_global,
+            /** Required when shown as a global field; form fields are required per form. */
+            'is_required' => $this->is_required,
+            /**
+             * Ticket types the field applies to; null for all types.
+             *
+             * @var list<string>|null
+             */
+            'ticket_types' => $this->ticket_types,
             'is_visible_to_customers' => $this->is_visible_to_customers,
             'position' => $this->position,
             'updated_at' => self::time($this->updated_at),

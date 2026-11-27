@@ -1,27 +1,27 @@
-import { Head, router, usePage } from "@inertiajs/react";
+import { Head, router, usePage } from '@inertiajs/react';
 import {
     FolderKanban,
     Puzzle,
     Receipt,
     Timer,
     TriangleAlert,
-} from "lucide-react";
-import type { LucideIcon } from "lucide-react";
-import { useState } from "react";
-import { AdminPageHeader } from "@/components/admin/page-header";
-import InputError from "@/components/input-error";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import { useState } from 'react';
+import { AdminPageHeader } from '@/components/admin/page-header';
+import InputError from '@/components/input-error';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
     Dialog,
     DialogContent,
     DialogDescription,
     DialogFooter,
     DialogTitle,
-} from "@/components/ui/dialog";
-import { useTranslation } from "@/hooks/use-translation";
-import { update } from "@/routes/admin/modules";
+} from '@/components/ui/dialog';
+import { useTranslation } from '@/hooks/use-translation';
+import { update } from '@/routes/admin/modules';
 
 type Module = {
     id: string;
@@ -43,7 +43,7 @@ type Module = {
 
 const icons: Record<string, LucideIcon> = {
     puzzle: Puzzle,
-    "folder-kanban": FolderKanban,
+    'folder-kanban': FolderKanban,
     timer: Timer,
     receipt: Receipt,
 };
@@ -56,12 +56,12 @@ export default function Modules({ modules }: { modules: Module[] }) {
 
     const run = (
         module: Module,
-        action: "install" | "enable" | "disable" | "uninstall" | "update",
+        action: 'install' | 'enable' | 'disable' | 'uninstall' | 'update',
         onDone?: () => void,
     ) =>
         router.put(
             update.url(module.id),
-            action === "uninstall" ? { action, confirm: true } : { action },
+            action === 'uninstall' ? { action, confirm: true } : { action },
             {
                 preserveScroll: true,
                 onStart: () => setProcessing(module.id),
@@ -74,11 +74,11 @@ export default function Modules({ modules }: { modules: Module[] }) {
 
     return (
         <>
-            <Head title={t("Modules")} />
+            <Head title={t('Modules')} />
             <AdminPageHeader
-                title={t("Modules")}
+                title={t('Modules')}
                 description={t(
-                    "Optional features that come with the helpdesk. Install one to set it up, then enable it. Disabling hides it for everyone and keeps its data; uninstalling removes its data.",
+                    'Optional features that come with the helpdesk. Install one to set it up, then enable it. Disabling hides it for everyone and keeps its data; uninstalling removes its data.',
                 )}
             />
 
@@ -86,7 +86,7 @@ export default function Modules({ modules }: { modules: Module[] }) {
 
             {modules.length === 0 ? (
                 <p className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-                    {t("No modules are installed.")}
+                    {t('No modules are installed.')}
                 </p>
             ) : (
                 <ul className="max-w-3xl space-y-3">
@@ -111,21 +111,21 @@ export default function Modules({ modules }: { modules: Module[] }) {
                                         </Badge>
                                         {!module.available ? (
                                             <Badge variant="secondary">
-                                                {t("Not available")}
+                                                {t('Not available')}
                                             </Badge>
                                         ) : (
                                             <Badge
                                                 variant={
                                                     module.enabled
-                                                        ? "default"
-                                                        : "secondary"
+                                                        ? 'default'
+                                                        : 'secondary'
                                                 }
                                             >
                                                 {!module.installed
-                                                    ? t("Not installed")
+                                                    ? t('Not installed')
                                                     : module.enabled
-                                                      ? t("Enabled")
-                                                      : t("Disabled")}
+                                                      ? t('Enabled')
+                                                      : t('Disabled')}
                                             </Badge>
                                         )}
                                     </div>
@@ -133,17 +133,17 @@ export default function Modules({ modules }: { modules: Module[] }) {
                                         {t(module.description)}
                                     </p>
                                     <p className="text-xs text-muted-foreground">
-                                        {t("By :vendor", {
+                                        {t('By :vendor', {
                                             vendor: module.vendor,
                                         })}
                                         {module.requires.length > 0 &&
-                                            ` · ${t("Requires :modules", {
+                                            ` · ${t('Requires :modules', {
                                                 modules: module.requires
                                                     .map(
                                                         (required) =>
                                                             required.name,
                                                     )
-                                                    .join(", "),
+                                                    .join(', '),
                                             })}`}
                                     </p>
                                 </div>
@@ -156,10 +156,10 @@ export default function Modules({ modules }: { modules: Module[] }) {
                                                 !module.available
                                             }
                                             onClick={() =>
-                                                run(module, "install")
+                                                run(module, 'install')
                                             }
                                         >
-                                            {t("Install")}
+                                            {t('Install')}
                                         </Button>
                                     ) : (
                                         <>
@@ -171,18 +171,18 @@ export default function Modules({ modules }: { modules: Module[] }) {
                                                         processing === module.id
                                                     }
                                                     onClick={() =>
-                                                        run(module, "update")
+                                                        run(module, 'update')
                                                     }
                                                 >
-                                                    {t("Update")}
+                                                    {t('Update')}
                                                 </Button>
                                             )}
                                             <Button
                                                 size="sm"
                                                 variant={
                                                     module.enabled
-                                                        ? "secondary"
-                                                        : "default"
+                                                        ? 'secondary'
+                                                        : 'default'
                                                 }
                                                 disabled={
                                                     processing === module.id ||
@@ -193,14 +193,14 @@ export default function Modules({ modules }: { modules: Module[] }) {
                                                     run(
                                                         module,
                                                         module.enabled
-                                                            ? "disable"
-                                                            : "enable",
+                                                            ? 'disable'
+                                                            : 'enable',
                                                     )
                                                 }
                                             >
                                                 {module.enabled
-                                                    ? t("Disable")
-                                                    : t("Enable")}
+                                                    ? t('Disable')
+                                                    : t('Enable')}
                                             </Button>
                                             {!module.enabled && (
                                                 <Button
@@ -213,7 +213,7 @@ export default function Modules({ modules }: { modules: Module[] }) {
                                                         setUninstalling(module)
                                                     }
                                                 >
-                                                    {t("Uninstall")}
+                                                    {t('Uninstall')}
                                                 </Button>
                                             )}
                                         </>
@@ -231,24 +231,24 @@ export default function Modules({ modules }: { modules: Module[] }) {
             >
                 <DialogContent>
                     <DialogTitle>
-                        {t("Uninstall :module?", {
-                            module: t(uninstalling?.name ?? ""),
+                        {t('Uninstall :module?', {
+                            module: t(uninstalling?.name ?? ''),
                         })}
                     </DialogTitle>
                     <DialogDescription>
                         {t(
-                            "The module is set up again the next time you install it.",
+                            'The module is set up again the next time you install it.',
                         )}
                     </DialogDescription>
                     {uninstalling?.has_data && (
                         <Alert variant="destructive">
                             <TriangleAlert />
                             <AlertTitle>
-                                {t("This action is irreversible")}
+                                {t('This action is irreversible')}
                             </AlertTitle>
                             <AlertDescription>
                                 {t(
-                                    "Uninstalling permanently deletes the module’s tables and everything stored in them. This data cannot be recovered, even by installing the module again, which starts empty.",
+                                    'Uninstalling permanently deletes the module’s tables and everything stored in them. This data cannot be recovered, even by installing the module again, which starts empty.',
                                 )}
                             </AlertDescription>
                         </Alert>
@@ -258,19 +258,19 @@ export default function Modules({ modules }: { modules: Module[] }) {
                             variant="secondary"
                             onClick={() => setUninstalling(null)}
                         >
-                            {t("Cancel")}
+                            {t('Cancel')}
                         </Button>
                         <Button
                             variant="destructive"
                             disabled={processing !== null}
                             onClick={() =>
                                 uninstalling &&
-                                run(uninstalling, "uninstall", () =>
+                                run(uninstalling, 'uninstall', () =>
                                     setUninstalling(null),
                                 )
                             }
                         >
-                            {t("Uninstall")}
+                            {t('Uninstall')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -281,7 +281,7 @@ export default function Modules({ modules }: { modules: Module[] }) {
 
 Modules.layout = {
     breadcrumbs: [
-        { title: "Admin center", href: "/admin" },
-        { title: "Modules", href: "/admin/modules" },
+        { title: 'Admin center', href: '/admin' },
+        { title: 'Modules', href: '/admin/modules' },
     ],
 };

@@ -6,6 +6,8 @@ use App\Domain\Ai\Mcp\McpAccess;
 use App\Domain\Tickets\Actions\UpdateTicket;
 use App\Domain\Tickets\Enums\TicketPriority;
 use App\Domain\Tickets\Enums\TicketStatus;
+use App\Domain\Tickets\Enums\TicketType;
+use App\Domain\Tickets\Models\TicketField;
 use App\Domain\Tickets\Support\CustomStatuses;
 use App\Models\User;
 use App\Rules\AssignableAgent;
@@ -21,7 +23,7 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsIdempotent;
 
 #[Name('update_ticket')]
-#[Description('Change a ticket\'s status, priority, assignee or group. Only the fields you pass change; pass null for assignee_id or group_id to clear them.')]
+#[Description('Change a ticket\'s status, priority, type, assignee, group or custom fields. Only the fields you pass change; pass null for assignee_id or group_id to clear them. Set custom fields by key (get_ticket lists them, with their options); pass null to clear one.')]
 #[IsIdempotent]
 class UpdateTicketTool extends Tool
 {
@@ -32,12 +34,16 @@ class UpdateTicketTool extends Tool
 
     public function handle(Request $request, UpdateTicket $updateTicket): Response
     {
+        $fields = TicketField::query()->get();
         $input = $request->validate([
             'ticket' => ['required', 'string', 'max:50'],
             'status' => ['sometimes', Rule::enum(TicketStatus::class)],
             'priority' => ['sometimes', Rule::enum(TicketPriority::class)],
+            'type' => ['sometimes', 'nullable', Rule::enum(TicketType::class)],
             'assignee_id' => ['sometimes', 'nullable', 'integer', new AssignableAgent],
             'group_id' => ['sometimes', 'nullable', 'integer', Rule::exists('groups', 'id')],
+            'custom_fields' => ['sometimes', 'array:'.$fields->pluck('key')->implode(',')],
+            ...$fields->flatMap(fn (TicketField $field): array => $field->valueRules('custom_fields', leading: ['sometimes']))->all(),
         ]);
 
         /** @var User $user */
@@ -64,8 +70,10 @@ class UpdateTicketTool extends Tool
             'reference' => $ticket->reference(),
             'status' => CustomStatuses::find($ticket->ticket_status_id)->name ?? $ticket->status->label(),
             'priority' => $ticket->priority->value,
+            'type' => $ticket->type?->value,
             'assignee' => $ticket->assignee?->name,
             'group' => $ticket->group?->name,
+            'custom_fields' => (object) ($ticket->custom_fields ?? []),
         ]);
     }
 
@@ -78,6 +86,8 @@ class UpdateTicketTool extends Tool
             'ticket' => $schema->string()->description('The ticket reference, such as #1042.')->required(),
             'status' => $schema->string()->enum(array_column(TicketStatus::cases(), 'value')),
             'priority' => $schema->string()->enum(array_column(TicketPriority::cases(), 'value')),
+            'type' => $schema->string()->enum(array_column(TicketType::cases(), 'value'))->nullable(),
+            'custom_fields' => $schema->object()->description('Custom field values by field key, e.g. {"plan": "Pro", "seats": 12}. Multi-select fields take a list of options; checkboxes true or false.'),
             'assignee_id' => $schema->integer()->nullable()->description('A staff member\'s user id.'),
             'group_id' => $schema->integer()->nullable(),
         ];

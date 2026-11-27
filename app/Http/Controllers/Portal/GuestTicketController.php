@@ -41,6 +41,7 @@ class GuestTicketController extends Controller
         return Inertia::render('guest/tickets/create', [
             'categories' => TicketCatalog::categories(customerFacing: true),
             'forms' => TicketCatalog::forms(customerFacing: true),
+            'globalFields' => TicketCatalog::globalFields(customerFacing: true),
             'defaultFormId' => TicketCatalog::defaultFormId(),
         ]);
     }
