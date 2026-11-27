@@ -18,7 +18,11 @@ declare module '@inertiajs/core' {
             sidebarOpen: boolean;
             agentNav: AgentNav;
             /** The agent sidebar layout in use, the installation default and the agent's own choice. */
-            sidebar: { mode: 'menus' | 'legacy'; default: 'menus' | 'legacy'; preference: 'menus' | 'legacy' | null } | null;
+            sidebar: {
+                mode: 'menus' | 'legacy';
+                default: 'menus' | 'legacy';
+                preference: 'menus' | 'legacy' | null;
+            } | null;
             /** The language of this request, e.g. "en" or "pt_BR". */
             locale: string;
             /** JSON translation strings for that language (English keys). */

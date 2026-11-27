@@ -6,6 +6,7 @@ use App\Domain\Support\RichText;
 use App\Domain\Tickets\Models\Ticket;
 use App\Domain\Tickets\Models\TicketMessage;
 use App\Domain\Tickets\Support\CustomStatuses;
+use App\Domain\Tickets\Support\TicketCatalog;
 use Illuminate\Support\Collection;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
@@ -29,11 +30,13 @@ final class TicketContext
             'Ticket: '.$ticket->reference().' — '.$ticket->subject,
             'Status: '.(CustomStatuses::find($ticket->ticket_status_id)->name ?? $ticket->status->label()),
             'Priority: '.$ticket->priority->label(),
+            $ticket->type ? 'Type: '.$ticket->type->label() : null,
             'Requester: '.$ticket->requester->name.($ticket->organization ? ' ('.$ticket->organization->name.')' : ''),
             $ticket->assignee ? 'Assignee: '.$ticket->assignee->name : null,
             $ticket->group ? 'Group: '.$ticket->group->name : null,
             $ticket->category ? 'Category: '.$ticket->category->name : null,
             $ticket->tags->isNotEmpty() ? 'Tags: '.$ticket->tags->pluck('name')->join(', ') : null,
+            self::customFields($ticket),
         ])->filter()->join("\n");
 
         $budget = self::MAX_CHARACTERS - mb_strlen($header);
@@ -51,6 +54,38 @@ final class TicketContext
         }
 
         return $header."\n\nConversation (oldest first):\n\n".implode("\n\n", array_reverse($kept));
+    }
+
+    /**
+     * The custom fields that apply to the ticket, with their key, type, options and value, so a
+     * client can both read them and set them by key.
+     */
+    private static function customFields(Ticket $ticket): ?string
+    {
+        $fields = TicketCatalog::fieldsForTicket($ticket);
+
+        if ($fields === []) {
+            return null;
+        }
+
+        $lines = array_map(function (array $field) use ($ticket): string {
+            $value = $ticket->custom_fields[$field['key']] ?? null;
+            $details = implode(', ', array_filter([
+                $field['key'],
+                $field['type'],
+                $field['options'] ? 'options: '.implode(' | ', $field['options']) : null,
+                $field['is_required'] ? 'required' : null,
+            ]));
+
+            return '- '.$field['label'].' ('.$details.'): '.match (true) {
+                $value === null || $value === '' || $value === [] => '(empty)',
+                is_bool($value) => $value ? 'yes' : 'no',
+                is_array($value) => implode(', ', array_map(strval(...), $value)),
+                default => (string) $value,
+            };
+        }, $fields);
+
+        return "Custom fields:\n".implode("\n", $lines);
     }
 
     /**

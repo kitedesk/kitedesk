@@ -4,15 +4,17 @@ import { useTranslation } from '@/hooks/use-translation';
 import { login } from '@/routes';
 import { check } from '@/routes/guest';
 import { store } from '@/routes/guest/tickets';
-import type { CategoryNode, FormFields } from '@/types';
+import type { CategoryNode, FormFields, TicketField } from '@/types';
 
 export default function GuestNewRequest({
     categories,
     forms,
+    globalFields,
     defaultFormId,
 }: {
     categories: CategoryNode[];
     forms: FormFields;
+    globalFields: TicketField[];
     defaultFormId: number | null;
 }) {
     const { t } = useTranslation();
@@ -23,6 +25,7 @@ export default function GuestNewRequest({
             <RequestForm
                 categories={categories}
                 forms={forms}
+                globalFields={globalFields}
                 defaultFormId={defaultFormId}
                 action={store.url()}
                 guest

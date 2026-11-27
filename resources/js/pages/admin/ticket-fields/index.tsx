@@ -46,6 +46,9 @@ type AdminField = {
     label: string;
     type: TicketFieldType;
     options: string[] | null;
+    is_global: boolean;
+    is_required: boolean;
+    ticket_types: string[] | null;
     is_visible_to_customers: boolean;
     forms_count: number;
 };
@@ -53,9 +56,11 @@ type AdminField = {
 export default function TicketFieldsIndex({
     fields,
     types,
+    ticketTypes,
 }: {
     fields: AdminField[];
     types: Option[];
+    ticketTypes: Option[];
 }) {
     const { t, tChoice } = useTranslation();
     const [editing, setEditing] = useState<AdminField | 'new' | null>(null);
@@ -66,7 +71,7 @@ export default function TicketFieldsIndex({
             <AdminPageHeader
                 title={t('Forms & fields')}
                 description={t(
-                    'Fields capture extra data on tickets. Add them to ticket forms to choose where they appear and whether they are required.',
+                    'Fields capture extra data on tickets. Show a field on every ticket, or add it to ticket forms to choose where it appears and whether it is required.',
                 )}
                 actions={
                     <Button onClick={() => setEditing('new')}>
@@ -137,12 +142,28 @@ export default function TicketFieldsIndex({
                                         ? t('visible to customers')
                                         : t('agents only')}
                                     {' · '}
-                                    {field.forms_count === 0
-                                        ? t('not on any form')
-                                        : tChoice(
-                                              'on :count form|on :count forms',
-                                              field.forms_count,
-                                          )}
+                                    {field.is_global
+                                        ? field.is_required
+                                            ? t('on every ticket, required')
+                                            : t('on every ticket')
+                                        : field.forms_count === 0
+                                          ? t('not on any form')
+                                          : tChoice(
+                                                'on :count form|on :count forms',
+                                                field.forms_count,
+                                            )}
+                                    {field.ticket_types?.length
+                                        ? ` · ${field.ticket_types
+                                              .map(
+                                                  (value) =>
+                                                      ticketTypes.find(
+                                                          (type) =>
+                                                              type.value ===
+                                                              value,
+                                                      )?.label ?? value,
+                                              )
+                                              .join(', ')}`
+                                        : ''}
                                 </p>
                             </div>
                             <Button
@@ -185,6 +206,7 @@ export default function TicketFieldsIndex({
                         <FieldForm
                             field={editing === 'new' ? null : editing}
                             types={types}
+                            ticketTypes={ticketTypes}
                             onDone={() => setEditing(null)}
                         />
                     )}
@@ -197,10 +219,12 @@ export default function TicketFieldsIndex({
 function FieldForm({
     field,
     types,
+    ticketTypes,
     onDone,
 }: {
     field: AdminField | null;
     types: Option[];
+    ticketTypes: Option[];
     onDone: () => void;
 }) {
     const { t } = useTranslation();
@@ -209,6 +233,9 @@ function FieldForm({
         key: field?.key ?? '',
         type: field?.type ?? 'text',
         options: field?.options ?? ([] as string[]),
+        is_global: field?.is_global ?? false,
+        is_required: field?.is_required ?? false,
+        ticket_types: field?.ticket_types ?? ([] as string[]),
         is_visible_to_customers: field?.is_visible_to_customers ?? true,
     });
     const errors = form.errors as Record<string, string | undefined>;
@@ -280,7 +307,8 @@ function FieldForm({
                 <InputError message={errors.type} />
             </div>
 
-            {form.data.type === 'select' && (
+            {(form.data.type === 'select' ||
+                form.data.type === 'multiselect') && (
                 <div className="grid gap-2">
                     <Label>{t('Options')}</Label>
                     <ul className="space-y-2">
@@ -358,6 +386,80 @@ function FieldForm({
                 />
                 {t('Visible to customers on the request form')}
             </label>
+
+            <div className="space-y-2">
+                <label className="flex items-center gap-2 text-sm">
+                    <input
+                        type="checkbox"
+                        checked={form.data.is_global}
+                        onChange={(event) =>
+                            form.setData('is_global', event.target.checked)
+                        }
+                        className="size-4 accent-[var(--primary)]"
+                    />
+                    {t('Show on every ticket, whatever its form')}
+                </label>
+                {form.data.is_global && (
+                    <label className="ml-6 flex items-center gap-2 text-sm">
+                        <input
+                            type="checkbox"
+                            checked={form.data.is_required}
+                            onChange={(event) =>
+                                form.setData(
+                                    'is_required',
+                                    event.target.checked,
+                                )
+                            }
+                            className="size-4 accent-[var(--primary)]"
+                        />
+                        {t('Required (on new tickets and before solving)')}
+                    </label>
+                )}
+                <InputError message={errors.is_global ?? errors.is_required} />
+            </div>
+
+            <fieldset className="grid gap-2">
+                <legend className="mb-2 text-sm font-medium">
+                    {t('Ticket types')}
+                </legend>
+                <div className="flex flex-wrap gap-x-4 gap-y-2">
+                    {ticketTypes.map((type) => (
+                        <label
+                            key={type.value}
+                            className="flex items-center gap-2 text-sm"
+                        >
+                            <input
+                                type="checkbox"
+                                checked={form.data.ticket_types.includes(
+                                    type.value,
+                                )}
+                                onChange={(event) =>
+                                    form.setData(
+                                        'ticket_types',
+                                        event.target.checked
+                                            ? [
+                                                  ...form.data.ticket_types,
+                                                  type.value,
+                                              ]
+                                            : form.data.ticket_types.filter(
+                                                  (value) =>
+                                                      value !== type.value,
+                                              ),
+                                    )
+                                }
+                                className="size-4 accent-[var(--primary)]"
+                            />
+                            {type.label}
+                        </label>
+                    ))}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                    {t(
+                        "Leave all unchecked to show the field on every type. Fields limited to some types never show on the customer request form, since customers don't pick a type.",
+                    )}
+                </p>
+                <InputError message={errors.ticket_types} />
+            </fieldset>
 
             <div className="flex justify-end">
                 <Button type="submit" disabled={form.processing}>

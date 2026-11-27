@@ -200,7 +200,7 @@ export function workflowFields(options: WorkflowOptions): WorkflowField[] {
             label: field.label,
             group: 'Custom fields',
             choices:
-                field.type === 'select'
+                field.type === 'select' || field.type === 'multiselect'
                     ? (field.options ?? []).map((option) => ({
                           value: option,
                           label: option,

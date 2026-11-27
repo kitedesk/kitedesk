@@ -142,9 +142,7 @@ export function NotificationsMenu() {
         read: item.read_at !== null,
         action: () => {
             setIsOpen(false);
-            router.visit(
-                item.data.url ?? show(item.data.ticket_id as number),
-            );
+            router.visit(item.data.url ?? show(item.data.ticket_id as number));
         },
     }));
 

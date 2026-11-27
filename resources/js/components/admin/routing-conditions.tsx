@@ -79,7 +79,7 @@ export function conditionFields(options: RoutingOptions): FieldDefinition[] {
             value: `custom_fields.${field.key}`,
             label: field.label,
             choices:
-                field.type === 'select'
+                field.type === 'select' || field.type === 'multiselect'
                     ? (field.options ?? []).map((option) => ({
                           value: option,
                           label: option,

@@ -5,23 +5,42 @@ import { Label } from '@/components/ui/label';
 import type { CategoryNode, FormFields, TicketField } from '@/types';
 
 /**
- * A custom field value as entered on a form (checkboxes are booleans).
+ * A custom field value as entered on a form (checkboxes are booleans, multi-selects lists).
  */
-export type CustomFieldValue = string | boolean;
+export type CustomFieldValue = string | boolean | string[];
 
 /**
- * The fields of the form that applies to the chosen category, or the default form.
+ * Whether a field applies to tickets of the given type (fields without types apply to all).
+ */
+export function appliesToType(
+    field: TicketField,
+    type: string | null,
+): boolean {
+    return (
+        !field.ticket_types?.length ||
+        (type !== null && field.ticket_types.includes(type))
+    );
+}
+
+/**
+ * The fields of the form that applies to the chosen category (or the default form), which
+ * include the global fields, or just the global fields when no form applies. Fields
+ * limited to other ticket types are left out.
  */
 export function fieldsForCategory(
     categories: CategoryNode[],
     forms: FormFields,
     categoryId: number | null,
     defaultFormId: number | null,
+    globalFields: TicketField[] = [],
+    type: string | null = null,
 ): TicketField[] {
     const formId =
         findCategory(categories, categoryId)?.category.form_id ?? defaultFormId;
+    const fields =
+        formId !== null ? (forms[formId] ?? globalFields) : globalFields;
 
-    return formId !== null ? (forms[formId] ?? []) : [];
+    return fields.filter((field) => appliesToType(field, type));
 }
 
 /**

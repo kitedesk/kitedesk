@@ -593,7 +593,11 @@ export default function TicketShow({
                 <aside className="order-3 hidden space-y-6 overflow-y-auto border-l p-4 xl:block">
                     <RequesterCard requester={requester} />
                     <RequesterTickets tickets={requesterTickets} />
-                    <ActivityLog activity={activity} options={options} />
+                    <ActivityLog
+                        activity={activity}
+                        options={options}
+                        fields={ticketFields}
+                    />
                 </aside>
             </div>
         </>
@@ -756,14 +760,49 @@ function categoryName(options: TicketOptions, id: unknown): string | null {
     return null;
 }
 
+type ChangeRow = { key: string; label: string; old: string; new: string };
+
 function ActivityLog({
     activity,
     options,
+    fields,
 }: {
     activity?: Activity[];
     options: TicketOptions;
+    fields: TicketField[];
 }) {
     const { t } = useTranslation();
+    const describeCustomValue = (value: unknown): string => {
+        if (
+            value === null ||
+            value === undefined ||
+            value === '' ||
+            (Array.isArray(value) && value.length === 0)
+        ) {
+            return '—';
+        }
+
+        if (typeof value === 'boolean') {
+            return value ? t('Yes') : t('No');
+        }
+
+        return displayValue(value);
+    };
+
+    // Custom fields are logged as one object: show a line for each field that changed.
+    const customFieldRows = (old: unknown, value: unknown): ChangeRow[] => {
+        const before = (old ?? {}) as Record<string, unknown>;
+        const after = (value ?? {}) as Record<string, unknown>;
+
+        return [...new Set([...Object.keys(before), ...Object.keys(after)])]
+            .map((key) => ({
+                key: `custom_fields.${key}`,
+                label: fields.find((field) => field.key === key)?.label ?? key,
+                old: describeCustomValue(before[key]),
+                new: describeCustomValue(after[key]),
+            }))
+            .filter((row) => row.old !== row.new);
+    };
     const describeValue = (field: string, value: unknown): string => {
         if (value === null || value === undefined || value === '') {
             return '—';
@@ -800,6 +839,32 @@ function ActivityLog({
 
         return displayValue(value);
     };
+
+    const changeRows = (entry: Activity): ChangeRow[] =>
+        Object.entries(entry.changes.new)
+            // The custom status already says which category it is in.
+            .filter(
+                ([field]) =>
+                    field !== 'status' ||
+                    !('ticket_status_id' in entry.changes.new),
+            )
+            .flatMap(([field, value]) =>
+                field === 'custom_fields'
+                    ? customFieldRows(entry.changes.old[field], value)
+                    : [
+                          {
+                              key: field,
+                              label: fieldLabels[field]
+                                  ? t(fieldLabels[field])
+                                  : field,
+                              old: describeValue(
+                                  field,
+                                  entry.changes.old[field],
+                              ),
+                              new: describeValue(field, value),
+                          },
+                      ],
+            );
 
     const describeEvent = (entry: Activity): string => {
         const label = entry.secret ?? '';
@@ -866,39 +931,18 @@ function ActivityLog({
                                 entry.event !== 'rated' &&
                                 !entry.event?.startsWith('secret_') && (
                                     <ul className="mt-1 space-y-0.5">
-                                        {Object.entries(entry.changes.new)
-                                            // The custom status already says which category it is in.
-                                            .filter(
-                                                ([field]) =>
-                                                    field !== 'status' ||
-                                                    !(
-                                                        'ticket_status_id' in
-                                                        entry.changes.new
-                                                    ),
-                                            )
-                                            .map(([field, value]) => (
-                                                <li key={field}>
-                                                    {fieldLabels[field]
-                                                        ? t(fieldLabels[field])
-                                                        : field}
-                                                    :{' '}
-                                                    <span className="text-muted-foreground line-through">
-                                                        {describeValue(
-                                                            field,
-                                                            entry.changes.old[
-                                                                field
-                                                            ],
-                                                        )}
-                                                    </span>{' '}
-                                                    →{' '}
-                                                    <span className="font-medium">
-                                                        {describeValue(
-                                                            field,
-                                                            value,
-                                                        )}
-                                                    </span>
-                                                </li>
-                                            ))}
+                                        {changeRows(entry).map((row) => (
+                                            <li key={row.key}>
+                                                {row.label}:{' '}
+                                                <span className="text-muted-foreground line-through">
+                                                    {row.old}
+                                                </span>{' '}
+                                                →{' '}
+                                                <span className="font-medium">
+                                                    {row.new}
+                                                </span>
+                                            </li>
+                                        ))}
                                     </ul>
                                 )}
                         </li>

@@ -10,6 +10,7 @@ use App\Domain\Tickets\Events\TicketUpdated;
 use App\Domain\Tickets\Models\Tag;
 use App\Domain\Tickets\Models\Ticket;
 use App\Domain\Tickets\Models\TicketCategory;
+use App\Domain\Tickets\Models\TicketField;
 use App\Domain\Tickets\Models\TicketForm;
 use App\Domain\Tickets\Routing\AutoAssigner;
 use App\Domain\Tickets\Routing\TicketRouter;
@@ -55,7 +56,7 @@ class UpdateTicket
             CustomStatuses::applyChosenStatus($ticket);
 
             if (array_key_exists('custom_fields', $attributes)) {
-                $ticket->custom_fields = array_merge($ticket->custom_fields ?? [], $attributes['custom_fields']);
+                $ticket->custom_fields = array_merge($ticket->custom_fields ?? [], TicketField::normalizeValues($attributes['custom_fields']));
             }
 
             $routedTags = $ticket->isDirty('category_id')

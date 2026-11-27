@@ -8,6 +8,7 @@ use App\Domain\Tickets\Enums\TicketType;
 use App\Domain\Tickets\Models\TicketCategory;
 use App\Domain\Tickets\Models\TicketField;
 use App\Domain\Tickets\Models\TicketForm;
+use App\Domain\Tickets\Support\TicketCatalog;
 use App\Rules\AssignableAgent;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -73,7 +74,7 @@ trait TicketPropertyRules
             : ['sometimes', 'array:'.$fields->pluck('key')->implode(',')]];
 
         foreach ($fields as $field) {
-            $rules["custom_fields.{$field->key}"] = $field->rules((bool) $field->pivot?->is_required);
+            $rules = [...$rules, ...$field->valueRules('custom_fields', $field->isRequired())];
         }
 
         return $rules;
@@ -90,7 +91,7 @@ trait TicketPropertyRules
         $rules = ['custom_fields' => ['sometimes', 'array:'.$fields->pluck('key')->implode(',')]];
 
         foreach ($fields as $field) {
-            $rules["custom_fields.{$field->key}"] = ['sometimes', ...$field->rules()];
+            $rules = [...$rules, ...$field->valueRules('custom_fields', leading: ['sometimes'])];
         }
 
         return $rules;
@@ -117,13 +118,9 @@ trait TicketPropertyRules
     {
         $category = $this->selectedCategory();
         $form = $category !== null ? $category->resolveForm() : TicketForm::default();
+        $type = $customerFacing ? null : $this->input('type');
 
-        /** @var Collection<int, TicketField> $fields */
-        $fields = $form?->fields()->get() ?? new Collection;
-
-        return $customerFacing
-            ? $fields->filter(fn (TicketField $field): bool => $field->is_visible_to_customers)->values()
-            : $fields;
+        return TicketCatalog::fieldsFor($form, is_string($type) ? $type : null, $customerFacing);
     }
 
     /**
