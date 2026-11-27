@@ -39,8 +39,41 @@ type Props = {
     minHeight?: string;
     /** Enables the @mention, #ticket and /canned response popups (agent composer). */
     suggestions?: EditorSuggestionOptions;
+    /** Receives files pasted into the editor (e.g. a screenshot), to attach them. */
+    onPasteFiles?: (files: File[]) => void;
     ref?: Ref<RichTextEditorHandle>;
 };
+
+/**
+ * Files pasted from the clipboard, such as a screenshot or files copied in the file manager.
+ *
+ * Copying from Word, Excel or a web page also puts a picture of the selection on the
+ * clipboard next to its HTML; that paste is left to the editor, as text.
+ */
+function pastedFiles(event: ClipboardEvent): File[] {
+    const clipboard = event.clipboardData;
+
+    if (!clipboard || clipboard.types.includes('text/html')) {
+        return [];
+    }
+
+    const stamp = new Date()
+        .toISOString()
+        .slice(0, 19)
+        .replace('T', ' ')
+        .replaceAll(':', '.');
+
+    return Array.from(clipboard.files).map((file, index) =>
+        // Screenshots arrive as "image.png": give them a name worth keeping.
+        /^image\.\w+$/.test(file.name)
+            ? new File(
+                  [file],
+                  `Pasted image ${stamp}${index > 0 ? ` (${index + 1})` : ''}.${file.name.split('.').pop()}`,
+                  { type: file.type, lastModified: file.lastModified },
+              )
+            : file,
+    );
+}
 
 export function RichTextEditor({
     value,
@@ -52,9 +85,17 @@ export function RichTextEditor({
     autoFocus = false,
     minHeight = '8rem',
     suggestions,
+    onPasteFiles,
     ref,
 }: Props) {
     const { t } = useTranslation();
+    // The editor keeps its first handlers; this ref always calls the latest callback.
+    const pasteFiles = useRef(onPasteFiles);
+
+    useEffect(() => {
+        pasteFiles.current = onPasteFiles;
+    });
+
     // The extensions are created once; the triggers read the latest options from this ref.
     const suggestionOptions = useRef(suggestions);
 
@@ -97,6 +138,17 @@ export function RichTextEditor({
                 }
 
                 return false;
+            },
+            handlePaste: (_view, event) => {
+                const files = pasteFiles.current ? pastedFiles(event) : [];
+
+                if (files.length === 0) {
+                    return false;
+                }
+
+                pasteFiles.current?.(files);
+
+                return true;
             },
         },
         onUpdate: ({ editor: instance }) =>
