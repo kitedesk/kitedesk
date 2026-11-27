@@ -182,3 +182,43 @@ test('the create form lists projects and their issue types, without subtasks', f
         ->assertOk()
         ->assertExactJson(['issue_types' => [['id' => '10001', 'name' => 'Bug']]]);
 });
+
+test('agents move an issue in Jira from the ticket, and the ticket hears about it right away', function () {
+    $link = JiraIssueLink::factory()->for($this->ticket)->create(['issue_key' => 'ENG-12', 'issue_id' => '10012']);
+    Http::fake([
+        Jira::API.'/issue/ENG-12/transitions' => Http::sequence()
+            ->push(['transitions' => [
+                ['id' => '21', 'name' => 'Start work', 'to' => ['id' => '3', 'name' => 'In Progress', 'statusCategory' => ['key' => 'indeterminate']]],
+            ]])
+            ->push(null, 204),
+        Jira::API.'/issue/ENG-12?*' => Http::response(Jira::issue('ENG-12', '10012', 'In Progress', 'indeterminate', statusId: '3')),
+    ]);
+
+    $this->actingAs($this->agent)
+        ->getJson(route('agent.tickets.jira.transitions', ['ticket' => $this->ticket, 'jiraIssueLink' => $link]))
+        ->assertOk()
+        ->assertExactJson(['transitions' => [['id' => '21', 'name' => 'Start work', 'to' => 'In Progress', 'to_category' => 'indeterminate']]]);
+
+    $this->actingAs($this->agent)
+        ->postJson(route('agent.tickets.jira.transition', ['ticket' => $this->ticket, 'jiraIssueLink' => $link]), ['transition' => '21'])
+        ->assertOk()
+        ->assertJsonPath('issues.0.status', 'In Progress');
+
+    Http::assertSent(fn (Request $request) => $request->method() === 'POST'
+        && str_ends_with($request->url(), '/issue/ENG-12/transitions')
+        && $request['transition'] === ['id' => '21']);
+
+    expect($link->refresh()->status_id)->toBe('3')
+        ->and($this->ticket->messages()->sole()->body)->toContain($this->agent->name.' moved Jira ENG-12 from To Do to In Progress');
+});
+
+test('a move Jira refuses is explained', function () {
+    $link = JiraIssueLink::factory()->for($this->ticket)->create(['issue_key' => 'ENG-12']);
+    Http::fake([Jira::API.'/issue/ENG-12/transitions' => Http::response(['errorMessages' => [], 'errors' => ['resolution' => 'Resolution is required.']], 400)]);
+
+    $this->actingAs($this->agent)
+        ->postJson(route('agent.tickets.jira.transition', ['ticket' => $this->ticket, 'jiraIssueLink' => $link]), ['transition' => '31'])
+        ->assertJsonValidationErrors(['jira' => 'Resolution is required.']);
+
+    expect($this->ticket->messages()->count())->toBe(0);
+});

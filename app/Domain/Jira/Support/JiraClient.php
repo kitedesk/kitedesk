@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Notification;
 /**
  * Jira Cloud's REST API (v3), signed in with an account's email and API token.
  *
- * @phpstan-type Issue array{id: string, key: string, summary: string, issue_type: string|null, status_name: string|null, status_category: StatusCategory|null, resolution: string|null, assignee_name: string|null, url: string}
+ * @phpstan-type Issue array{id: string, key: string, summary: string, issue_type: string|null, status_id: string|null, status_name: string|null, status_category: StatusCategory|null, resolution: string|null, assignee_name: string|null, url: string}
  */
 class JiraClient
 {
@@ -155,6 +155,58 @@ class JiraClient
     }
 
     /**
+     * Every workflow status on the site, by name, with the group Jira puts it in.
+     *
+     * @return list<array{id: string, name: string, category: StatusCategory|null}>
+     */
+    public function statuses(): array
+    {
+        $statuses = [];
+
+        foreach ((array) $this->send(fn (PendingRequest $http) => $http->get('status'))->json() as $status) {
+            if (is_array($status) && isset($status['id'], $status['name'])) {
+                $statuses[(string) $status['id']] = [
+                    'id' => (string) $status['id'],
+                    'name' => (string) $status['name'],
+                    'category' => StatusCategory::tryFrom((string) ($status['statusCategory']['key'] ?? '')),
+                ];
+            }
+        }
+
+        usort($statuses, fn (array $a, array $b): int => strnatcasecmp($a['name'], $b['name']));
+
+        return $statuses;
+    }
+
+    /**
+     * The moves the issue's workflow allows from its current status.
+     *
+     * @return list<array{id: string, name: string, to: array{id: string, name: string, category: StatusCategory|null}}>
+     */
+    public function transitions(string $issueKey): array
+    {
+        $transitions = $this->send(fn (PendingRequest $http) => $http->get('issue/'.rawurlencode($issueKey).'/transitions'))->json('transitions', []);
+
+        return array_values(array_map(fn (array $transition): array => [
+            'id' => (string) $transition['id'],
+            'name' => (string) $transition['name'],
+            'to' => [
+                'id' => (string) ($transition['to']['id'] ?? ''),
+                'name' => (string) ($transition['to']['name'] ?? $transition['name']),
+                'category' => StatusCategory::tryFrom((string) ($transition['to']['statusCategory']['key'] ?? '')),
+            ],
+        ], $transitions));
+    }
+
+    /**
+     * Moves the issue along one of its workflow's transitions.
+     */
+    public function transition(string $issueKey, string $transitionId): void
+    {
+        $this->send(fn (PendingRequest $http) => $http->post('issue/'.rawurlencode($issueKey).'/transitions', ['transition' => ['id' => $transitionId]]));
+    }
+
+    /**
      * @param  array<string, mixed>  $body  ADF document
      * @return string the comment's id
      */
@@ -203,6 +255,7 @@ class JiraClient
             'key' => (string) $issue['key'],
             'summary' => (string) ($fields['summary'] ?? ''),
             'issue_type' => $fields['issuetype']['name'] ?? null,
+            'status_id' => isset($fields['status']['id']) ? (string) $fields['status']['id'] : null,
             'status_name' => $fields['status']['name'] ?? null,
             'status_category' => StatusCategory::tryFrom((string) ($fields['status']['statusCategory']['key'] ?? '')),
             'resolution' => $fields['resolution']['name'] ?? null,

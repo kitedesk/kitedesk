@@ -30,6 +30,10 @@ class SaveJiraSettingsRequest extends FormRequest
             'default_project' => ['nullable', 'string', 'max:50'],
             'default_issue_type' => ['nullable', 'string', 'max:50'],
             'status_mapping' => ['array'],
+            'status_rules' => ['array', 'max:100'],
+            'status_rules.*.status_id' => ['required', 'string', 'max:50', 'distinct'],
+            'status_rules.*.status_name' => ['required', 'string', 'max:255'],
+            'status_rules.*.ticket_status_id' => $statusRule,
             ...collect(StatusCategory::cases())->mapWithKeys(fn (StatusCategory $category): array => ["status_mapping.{$category->value}" => $statusRule])->all(),
         ];
     }
@@ -43,7 +47,7 @@ class SaveJiraSettingsRequest extends FormRequest
     }
 
     /**
-     * @return array{site_url: string, email: string, api_token: ?string, expires_on: ?string, default_project: ?string, default_issue_type: ?string, status_mapping: array<string, int|null>}
+     * @return array{site_url: string, email: string, api_token: ?string, expires_on: ?string, default_project: ?string, default_issue_type: ?string, status_mapping: array<string, int|null>, status_rules: list<array{status_id: string, status_name: string, ticket_status_id: int|null}>}
      */
     public function settings(): array
     {
@@ -57,6 +61,11 @@ class SaveJiraSettingsRequest extends FormRequest
             'default_project' => $text('default_project'),
             'default_issue_type' => $text('default_issue_type'),
             'status_mapping' => collect((array) $this->input('status_mapping', []))->map(fn (mixed $id): ?int => is_numeric($id) ? (int) $id : null)->all(),
+            'status_rules' => array_values(array_map(fn (array $rule): array => [
+                'status_id' => (string) $rule['status_id'],
+                'status_name' => (string) $rule['status_name'],
+                'ticket_status_id' => is_numeric($rule['ticket_status_id'] ?? null) ? (int) $rule['ticket_status_id'] : null,
+            ], (array) $this->validated('status_rules', []))),
         ];
     }
 }

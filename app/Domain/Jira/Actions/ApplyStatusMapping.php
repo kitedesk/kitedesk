@@ -11,18 +11,18 @@ use App\Domain\Tickets\Models\Ticket;
 use App\Domain\Tickets\Support\CustomStatuses;
 
 /**
- * Moves a ticket to the status the admin mapped to the Jira status category one of its issues
- * just moved into. "Done" only counts once every issue linked to the ticket is done, and
- * closed tickets are never touched.
+ * Moves a ticket to the status the admin chose for the Jira status one of its issues just
+ * moved into: the rule for that exact Jira status, or else the one for its group (To do,
+ * In progress, Done). Moving into a "done" status only counts once every issue linked to
+ * the ticket is done, and closed tickets are never touched.
  */
 class ApplyStatusMapping
 {
     public function __construct(private UpdateTicket $updateTicket) {}
 
-    public function handle(Ticket $ticket, StatusCategory $category): void
+    public function handle(Ticket $ticket, ?string $jiraStatusId, ?StatusCategory $category): void
     {
-        $statusId = JiraSettings::current()->statusFor($category);
-        $status = CustomStatuses::find($statusId);
+        $status = CustomStatuses::find(JiraSettings::current()->ticketStatusFor($jiraStatusId, $category));
 
         if ($status === null || ! $status->is_active || $ticket->status === TicketStatus::Closed || $ticket->ticket_status_id === $status->id) {
             return;

@@ -2116,7 +2116,6 @@
     "linked Jira issue :key": "vinculou a issue do Jira :key",
     "unlinked Jira issue :key": "desvinculou a issue do Jira :key",
     "Create and link Jira issues": "Criar e vincular issues do Jira",
-    "Create Jira issues from tickets, and link or unlink existing ones.": "Criar issues do Jira a partir de chamados, e vincular ou desvincular issues existentes.",
     "Enter your Jira Cloud address, such as https://your-company.atlassian.net.": "Informe o endereço do seu Jira Cloud, como https://sua-empresa.atlassian.net.",
     "Jira settings saved.": "Configurações do Jira salvas.",
     "Connected to Jira as :name.": "Conectado ao Jira como :name.",
@@ -2168,5 +2167,15 @@
     ":name is now linked to :organization.": ":name agora está vinculado(a) a :organization.",
     ":name is no longer linked to an organization.": ":name não está mais vinculado(a) a uma organização.",
     "Link customers to organizations": "Vincular clientes a organizações",
-    "Confirm which organization a customer belongs to, and whether they may act for it.": "Confirmar a qual organização um cliente pertence e se pode agir em nome dela."
+    "Confirm which organization a customer belongs to, and whether they may act for it.": "Confirmar a qual organização um cliente pertence e se pode agir em nome dela.",
+    "Change the status in Jira": "Alterar o status no Jira",
+    "Move in Jira to": "Mover no Jira para",
+    "No moves are allowed from this status.": "Nenhuma mudança é permitida a partir deste status.",
+    "Rules for specific Jira statuses": "Regras para status específicos do Jira",
+    "For statuses that need their own handling, such as \"Waiting for customer\" or \"Won't fix\". A rule here wins over its group above.": "Para status que precisam de tratamento próprio, como \"Aguardando cliente\" ou \"Não será corrigido\". Uma regra aqui vale mais que a do seu grupo acima.",
+    "Remove rule": "Remover regra",
+    "Could not load the statuses from Jira.": "Não foi possível carregar os status do Jira.",
+    "Add a rule for…": "Adicionar uma regra para…",
+    "Create Jira issues from tickets, link or unlink existing ones, and change their status.": "Criar issues do Jira a partir de chamados, vincular ou desvincular issues existentes e alterar o status delas.",
+    ":name moved Jira :key from :from to :to.": ":name moveu a issue :key do Jira de :from para :to."
 }

@@ -55,7 +55,7 @@ final class Jira
      *
      * @return array<string, mixed>
      */
-    public static function issue(string $key = 'ENG-12', string $id = '10012', string $status = 'To Do', string $category = 'new', ?string $resolution = null): array
+    public static function issue(string $key = 'ENG-12', string $id = '10012', string $status = 'To Do', string $category = 'new', ?string $resolution = null, ?string $statusId = null): array
     {
         return [
             'id' => $id,
@@ -63,7 +63,7 @@ final class Jira
             'fields' => [
                 'summary' => 'Export fails for large files',
                 'issuetype' => ['name' => 'Bug'],
-                'status' => ['name' => $status, 'statusCategory' => ['key' => $category]],
+                'status' => ['id' => $statusId ?? (string) (1000 + crc32($status) % 1000), 'name' => $status, 'statusCategory' => ['key' => $category]],
                 'resolution' => $resolution !== null ? ['name' => $resolution] : null,
                 'assignee' => ['displayName' => 'Dana Dev'],
             ],

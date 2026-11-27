@@ -1,8 +1,15 @@
-import { Link, useHttp } from '@inertiajs/react';
-import { ExternalLink, Link2, Plus, X } from 'lucide-react';
+import { Link, router, useHttp } from '@inertiajs/react';
+import { ChevronDown, ExternalLink, Link2, Plus, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import InputError from '@/components/input-error';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import {
     Select,
@@ -24,6 +31,8 @@ import {
     projects as projectsRoute,
     search as searchRoute,
     store,
+    transition as transitionRoute,
+    transitions as transitionsRoute,
 } from '@/routes/agent/tickets/jira';
 
 type StatusCategory = 'new' | 'indeterminate' | 'done';
@@ -87,6 +96,82 @@ export function StatusBadge({
     );
 }
 
+type Transition = {
+    id: string;
+    name: string;
+    to: string;
+    to_category: StatusCategory | null;
+};
+
+/**
+ * The issue's status; opening it lists the statuses its Jira workflow allows next.
+ */
+function StatusMenu({
+    issue,
+    loadTransitions,
+    onMove,
+}: {
+    issue: LinkedIssue;
+    loadTransitions: () => Promise<{ transitions: Transition[] } | null>;
+    onMove: (transitionId: string) => Promise<void>;
+}) {
+    const { t } = useTranslation();
+    const [transitions, setTransitions] = useState<Transition[] | null>(null);
+
+    return (
+        <DropdownMenu
+            onOpenChange={async (open) => {
+                if (open) {
+                    setTransitions(null);
+                    setTransitions(
+                        (await loadTransitions())?.transitions ?? [],
+                    );
+                }
+            }}
+        >
+            <DropdownMenuTrigger
+                className="inline-flex items-center gap-0.5 rounded focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+                title={t('Change the status in Jira')}
+            >
+                <StatusBadge
+                    status={issue.status}
+                    category={issue.status_category}
+                />
+                <ChevronDown className="size-3" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="min-w-48">
+                <DropdownMenuLabel className="text-xs text-muted-foreground">
+                    {t('Move in Jira to')}
+                </DropdownMenuLabel>
+                {transitions === null ? (
+                    <div className="mx-2 my-1.5 h-5 animate-pulse rounded bg-muted" />
+                ) : transitions.length === 0 ? (
+                    <p className="px-2 py-1.5 text-xs text-muted-foreground">
+                        {t('No moves are allowed from this status.')}
+                    </p>
+                ) : (
+                    transitions.map((transition) => (
+                        <DropdownMenuItem
+                            key={transition.id}
+                            onSelect={() => void onMove(transition.id)}
+                        >
+                            <StatusBadge
+                                status={transition.to}
+                                category={transition.to_category}
+                            />
+                            {transition.name !== transition.to && (
+                                <span className="text-xs text-muted-foreground">
+                                    {transition.name}
+                                </span>
+                            )}
+                        </DropdownMenuItem>
+                    ))
+                )}
+            </DropdownMenuContent>
+        </DropdownMenu>
+    );
+}
+
 /**
  * Jira issues linked to the ticket, shown on the ticket page: link an existing issue or
  * create one from the ticket. Every answer from the server replaces what is shown.
@@ -100,7 +185,6 @@ export function JiraPanel({ ticket }: TicketPanelProps) {
     const [data, setData] = useState<PanelData | null>(null);
     const [failed, setFailed] = useState(false);
     const [mode, setMode] = useState<'link' | 'create' | null>(null);
-    const [error, setError] = useState<string | null>(null);
     const [query, setQuery] = useState('');
     const [results, setResults] = useState<SearchResult[]>([]);
     const [projects, setProjects] = useState<{ key: string; name: string }[]>(
@@ -118,20 +202,27 @@ export function JiraPanel({ ticket }: TicketPanelProps) {
             payload: Body = {},
         ): Promise<T | null> => {
             body.current = payload;
-            setError(null);
+            let reported = false;
 
             try {
                 return (await http[method](url, {
-                    onError: (errors: Record<string, string>) =>
-                        setError(
+                    // Jira's refusal (or a bad key) comes back as a validation error.
+                    onError: (errors: Record<string, string>) => {
+                        reported = true;
+                        toast.error(
                             errors.jira ??
                                 errors.issue ??
                                 Object.values(errors)[0] ??
-                                null,
-                        ),
+                                t('Something went wrong.'),
+                        );
+                    },
                 })) as T;
             } catch {
-                setError((current) => current ?? t('Something went wrong.'));
+                // This panel talks to the server with `useHttp`, which the app's error toasts
+                // (for page visits) don't hear about, so it reports failures itself.
+                if (!reported) {
+                    toast.error(t('Something went wrong.'));
+                }
 
                 return null;
             }
@@ -241,7 +332,6 @@ export function JiraPanel({ ticket }: TicketPanelProps) {
                             variant="ghost"
                             size="sm"
                             onClick={() => {
-                                setError(null);
                                 setMode(mode === 'link' ? null : 'link');
                             }}
                         >
@@ -324,6 +414,42 @@ export function JiraPanel({ ticket }: TicketPanelProps) {
                             <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
                                 {issue.deleted ? (
                                     <span>{t('Deleted in Jira')}</span>
+                                ) : data.can_manage ? (
+                                    <StatusMenu
+                                        issue={issue}
+                                        loadTransitions={() =>
+                                            request<{
+                                                transitions: Transition[];
+                                            }>(
+                                                'get',
+                                                transitionsRoute.url({
+                                                    ticket: ticket.id,
+                                                    jiraIssueLink: issue.id,
+                                                }),
+                                            )
+                                        }
+                                        onMove={async (transitionId) => {
+                                            const answer = await update(
+                                                'post',
+                                                transitionRoute.url({
+                                                    ticket: ticket.id,
+                                                    jiraIssueLink: issue.id,
+                                                }),
+                                                { transition: transitionId },
+                                            );
+
+                                            // The move adds a note, and the status rules may move the ticket.
+                                            if (answer) {
+                                                router.reload({
+                                                    only: [
+                                                        'ticket',
+                                                        'messages',
+                                                        'activity',
+                                                    ],
+                                                });
+                                            }
+                                        }}
+                                    />
                                 ) : (
                                     <StatusBadge
                                         status={issue.status}
@@ -480,8 +606,6 @@ export function JiraPanel({ ticket }: TicketPanelProps) {
                     </Button>
                 </form>
             )}
-
-            <InputError message={error ?? undefined} />
         </section>
     );
 }

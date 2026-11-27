@@ -23,6 +23,7 @@ final readonly class JiraSettings
 
     /**
      * @param  array<string, int|null>  $statusMapping  Jira status category (value) => ticket status id, or null to leave the ticket alone
+     * @param  list<array{status_id: string, status_name: string, ticket_status_id: int|null}>  $statusRules  rules for exact Jira statuses, which win over the category mapping; a null ticket status means "don't change"
      */
     public function __construct(
         public ?string $siteUrl = null,
@@ -33,6 +34,7 @@ final readonly class JiraSettings
         public ?string $defaultProject = null,
         public ?string $defaultIssueType = null,
         public array $statusMapping = [],
+        public array $statusRules = [],
     ) {}
 
     public static function current(): self
@@ -51,6 +53,7 @@ final readonly class JiraSettings
             defaultProject: $string('default_project'),
             defaultIssueType: $string('default_issue_type'),
             statusMapping: self::mapping($mapping),
+            statusRules: self::rules(is_array($setting['status_rules'] ?? null) ? $setting['status_rules'] : []),
         );
     }
 
@@ -58,7 +61,7 @@ final readonly class JiraSettings
      * The settings to store when an admin saves the page. A blank token keeps the stored one,
      * and the webhook secret is created the first time.
      *
-     * @param  array{site_url: string, email: string, api_token: ?string, expires_on: ?string, default_project: ?string, default_issue_type: ?string, status_mapping: array<string, int|null>}  $input
+     * @param  array{site_url: string, email: string, api_token: ?string, expires_on: ?string, default_project: ?string, default_issue_type: ?string, status_mapping: array<string, int|null>, status_rules: list<array{status_id: string, status_name: string, ticket_status_id: int|null}>}  $input
      */
     public function update(array $input): self
     {
@@ -71,6 +74,7 @@ final readonly class JiraSettings
             defaultProject: $input['default_project'],
             defaultIssueType: $input['default_issue_type'],
             statusMapping: self::mapping($input['status_mapping']),
+            statusRules: self::rules($input['status_rules']),
         );
     }
 
@@ -79,7 +83,7 @@ final readonly class JiraSettings
      */
     public function withNewSecret(): self
     {
-        return new self($this->siteUrl, $this->email, $this->apiToken, $this->expiresOn, self::newSecret(), $this->defaultProject, $this->defaultIssueType, $this->statusMapping);
+        return new self($this->siteUrl, $this->email, $this->apiToken, $this->expiresOn, self::newSecret(), $this->defaultProject, $this->defaultIssueType, $this->statusMapping, $this->statusRules);
     }
 
     public function save(): void
@@ -93,6 +97,7 @@ final readonly class JiraSettings
             'default_project' => $this->defaultProject,
             'default_issue_type' => $this->defaultIssueType,
             'status_mapping' => $this->statusMapping,
+            'status_rules' => $this->statusRules,
         ]);
 
         JiraHealth::clear();
@@ -112,6 +117,46 @@ final readonly class JiraSettings
     public function statusFor(StatusCategory $category): ?int
     {
         return $this->statusMapping[$category->value] ?? null;
+    }
+
+    /**
+     * The ticket status an issue moving into this Jira status moves its tickets to: the rule
+     * for that exact status when there is one (it may say "don't change"), else the mapping
+     * for its category.
+     */
+    public function ticketStatusFor(?string $jiraStatusId, ?StatusCategory $category): ?int
+    {
+        foreach ($this->statusRules as $rule) {
+            if ($jiraStatusId !== null && $rule['status_id'] === $jiraStatusId) {
+                return $rule['ticket_status_id'];
+            }
+        }
+
+        return $category !== null ? $this->statusFor($category) : null;
+    }
+
+    /**
+     * @param  array<mixed>  $rules
+     * @return list<array{status_id: string, status_name: string, ticket_status_id: int|null}>
+     */
+    private static function rules(array $rules): array
+    {
+        $result = [];
+
+        foreach ($rules as $rule) {
+            if (! is_array($rule) || ! isset($rule['status_id']) || (string) $rule['status_id'] === '') {
+                continue;
+            }
+
+            // One rule per Jira status; the last one given wins.
+            $result[(string) $rule['status_id']] = [
+                'status_id' => (string) $rule['status_id'],
+                'status_name' => (string) ($rule['status_name'] ?? ''),
+                'ticket_status_id' => is_numeric($rule['ticket_status_id'] ?? null) ? (int) $rule['ticket_status_id'] : null,
+            ];
+        }
+
+        return array_values($result);
     }
 
     /**
