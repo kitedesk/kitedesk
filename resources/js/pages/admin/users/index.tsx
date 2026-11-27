@@ -1,5 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { Pencil, Search, Trash2, UserPlus } from 'lucide-react';
+import { Pencil, Search, Trash2, UserPlus, X } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { AdminPageHeader } from '@/components/admin/page-header';
 import { ConfirmAction } from '@/components/admin/confirm-action';
@@ -21,6 +21,8 @@ type UserRow = {
     type: 'staff' | 'customer';
     role_label: string;
     organization: { id: number; name: string } | null;
+    /** "Member" or "Authorized contact" while in an organization. */
+    organization_role: string | null;
     groups: { id: number; name: string }[];
     tickets_count: number;
     email_verified: boolean;
@@ -33,6 +35,8 @@ type UserRow = {
 type Props = {
     audience: 'staff' | 'customers' | 'deactivated';
     search: string;
+    /** Only the people in this organization (from the organizations page). */
+    organization: { id: number; name: string } | null;
     deactivatedCount: number;
     users: {
         data: UserRow[];
@@ -45,6 +49,7 @@ type Props = {
 export default function UsersIndex({
     audience,
     search,
+    organization,
     users,
     deactivatedCount,
 }: Props) {
@@ -58,6 +63,7 @@ export default function UsersIndex({
             {
                 ...(audience !== 'staff' ? { audience } : {}),
                 ...(query ? { search: query } : {}),
+                ...(organization ? { organization: organization.id } : {}),
                 ...params,
             },
             { preserveState: true, replace: true },
@@ -117,6 +123,28 @@ export default function UsersIndex({
                         )
                     }
                 />
+                {organization && (
+                    <button
+                        type="button"
+                        onClick={() =>
+                            router.get(
+                                index.url(),
+                                {
+                                    ...(audience !== 'staff'
+                                        ? { audience }
+                                        : {}),
+                                    ...(query ? { search: query } : {}),
+                                },
+                                { preserveState: true, replace: true },
+                            )
+                        }
+                        className="inline-flex items-center gap-1 rounded-md border border-primary/50 bg-primary/5 px-2 py-1 text-xs"
+                        title={t('Show everyone')}
+                    >
+                        {t('Organization: :name', { name: organization.name })}
+                        <X className="size-3" />
+                    </button>
+                )}
                 <div className="relative w-full sm:w-64">
                     <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
@@ -131,6 +159,12 @@ export default function UsersIndex({
                                         {
                                             ...(audience !== 'staff'
                                                 ? { audience }
+                                                : {}),
+                                            ...(organization
+                                                ? {
+                                                      organization:
+                                                          organization.id,
+                                                  }
                                                 : {}),
                                             search: event.target.value,
                                         },
@@ -213,12 +247,19 @@ export default function UsersIndex({
                                         <span className="rounded-md bg-muted px-1.5 py-0.5 text-xs font-medium">
                                             {user.role_label}
                                         </span>
+                                    ) : user.organization ? (
+                                        <span>
+                                            {user.organization.name}
+                                            {user.organization_role && (
+                                                <span className="ml-1.5 text-xs text-muted-foreground">
+                                                    {user.organization_role}
+                                                </span>
+                                            )}
+                                        </span>
                                     ) : (
-                                        (user.organization?.name ?? (
-                                            <span className="text-muted-foreground">
-                                                —
-                                            </span>
-                                        ))
+                                        <span className="text-muted-foreground">
+                                            —
+                                        </span>
                                     )}
                                 </td>
                                 <td className="hidden px-3 py-3 md:table-cell">

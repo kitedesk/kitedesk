@@ -8,6 +8,7 @@ use App\Http\Controllers\Agent\CannedResponseController;
 use App\Http\Controllers\Agent\InternalRequestController;
 use App\Http\Controllers\Agent\NotificationController;
 use App\Http\Controllers\Agent\ReportController;
+use App\Http\Controllers\Agent\RequesterOrganizationController;
 use App\Http\Controllers\Agent\SavedViewController;
 use App\Http\Controllers\Agent\SearchController;
 use App\Http\Controllers\Agent\TicketAiController;
@@ -48,6 +49,9 @@ Route::prefix('agent')
             Route::delete('tickets/{ticket}/links/{linked}', [TicketLinkController::class, 'destroy'])->name('tickets.links.destroy');
             Route::post('tickets/{ticket}/workflows/{workflow}', [TicketWorkflowController::class, 'store'])->middleware('entitlement:workflows')->name('tickets.workflows.store');
             Route::post('tickets/{ticket}/secrets', [TicketSecretController::class, 'store'])->name('tickets.secrets.store');
+            Route::put('tickets/{ticket}/requester/organization', [RequesterOrganizationController::class, 'update'])
+                ->middleware('permission:tickets.link_customers')
+                ->name('tickets.requester.organization');
 
             Route::middleware(['can:useAi,ticket', 'throttle:ai'])->prefix('tickets/{ticket}/ai')->name('tickets.ai.')->group(function () {
                 Route::get('summary', [TicketAiController::class, 'summary'])->name('summary');
@@ -76,6 +80,9 @@ Route::prefix('agent')
             ->parameters(['canned-responses' => 'cannedResponse'])
             ->only(['index', 'store', 'update', 'destroy']);
 
+        Route::get('organizations/lookup', [RequesterOrganizationController::class, 'lookup'])
+            ->middleware(['permission:tickets.link_customers', 'throttle:60,1'])
+            ->name('organizations.lookup');
         Route::patch('availability', AvailabilityController::class)->name('availability');
         Route::patch('preferences/board', BoardPreferencesController::class)->name('preferences.board');
 

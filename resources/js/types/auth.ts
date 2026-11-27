@@ -32,6 +32,7 @@ export type CorePermission =
     | 'tickets.receive_assignments'
     | 'tickets.secrets'
     | 'tickets.use_ai'
+    | 'tickets.link_customers'
     | 'views.share'
     | 'canned_responses.share'
     | 'reports.view'

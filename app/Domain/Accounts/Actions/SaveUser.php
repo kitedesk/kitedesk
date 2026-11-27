@@ -2,6 +2,8 @@
 
 namespace App\Domain\Accounts\Actions;
 
+use App\Domain\Accounts\Enums\OrganizationRole;
+use App\Domain\Accounts\Models\Organization;
 use App\Domain\Accounts\Models\Role;
 use App\Domain\Webhooks\Enums\WebhookEvent;
 use App\Domain\Webhooks\Support\Webhooks;
@@ -18,8 +20,10 @@ use Illuminate\Support\Str;
  */
 class SaveUser
 {
+    public function __construct(private LinkToOrganization $linkToOrganization) {}
+
     /**
-     * @param  array{name: string, email: string, type: string, organization_id?: int|null, timezone?: string|null, locale?: string|null, job_title?: string|null, phone?: string|null, group_ids?: list<int>}  $data
+     * @param  array{name: string, email: string, type: string, organization_id?: int|null, organization_role?: string|null, timezone?: string|null, locale?: string|null, job_title?: string|null, phone?: string|null, group_ids?: list<int>}  $data
      */
     public function create(array $data, ?Role $role, User $actor, bool $invite = true): User
     {
@@ -29,10 +33,11 @@ class SaveUser
         ]);
         $user->forceFill([
             'type' => $data['type'],
-            'organization_id' => $data['organization_id'] ?? null,
             // The admin vouches for the address; the invitation link proves ownership.
             'email_verified_at' => now(),
         ])->save();
+
+        $this->linkOrganization($user, $data, $actor);
 
         $user->syncRoles($user->isStaff() && $role !== null ? [$role] : []);
         $user->groups()->sync($user->isStaff() ? $data['group_ids'] ?? [] : []);
@@ -50,17 +55,16 @@ class SaveUser
     /**
      * Groups are only changed when `group_ids` is given.
      *
-     * @param  array{name: string, email: string, type: string, organization_id?: int|null, timezone?: string|null, locale?: string|null, job_title?: string|null, phone?: string|null, group_ids?: list<int>}  $data
+     * @param  array{name: string, email: string, type: string, organization_id?: int|null, organization_role?: string|null, timezone?: string|null, locale?: string|null, job_title?: string|null, phone?: string|null, group_ids?: list<int>}  $data
      */
     public function update(User $user, array $data, ?Role $role, User $actor): User
     {
         $user->load(['organization:id,name', 'groups:id,name', 'roles']);
         $before = $this->auditedFields($user);
 
-        $user->fill($this->profile($data))->forceFill([
-            'type' => $data['type'],
-            'organization_id' => $data['organization_id'] ?? null,
-        ])->save();
+        $user->fill($this->profile($data))->forceFill(['type' => $data['type']])->save();
+
+        $this->linkOrganization($user, $data, $actor);
 
         $user->syncRoles($user->isStaff() && $role !== null ? [$role] : []);
 
@@ -88,6 +92,23 @@ class SaveUser
     }
 
     /**
+     * The organization and the role in it, through the same rules as everywhere else (open
+     * tickets follow). Recorded as part of this save's activity entry.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function linkOrganization(User $user, array $data, User $actor): void
+    {
+        $organization = isset($data['organization_id']) ? Organization::query()->find((int) $data['organization_id']) : null;
+        $role = isset($data['organization_role']) ? OrganizationRole::tryFrom((string) $data['organization_role']) : null;
+
+        // Without a role given (e.g. an API call that only moves them), they keep the one they have.
+        $role ??= $organization !== null && $organization->id === $user->organization_id ? $user->organization_role : null;
+
+        $this->linkToOrganization->apply($user, $organization, $role, $actor);
+    }
+
+    /**
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
@@ -110,6 +131,7 @@ class SaveUser
             'email' => $user->email,
             'role' => $user->staffRole()?->displayName() ?? $user->type->label(),
             'organization' => $user->organization?->name,
+            'organization_role' => $user->organization_id !== null ? $user->organization_role?->label() : null,
             'groups' => $user->groups->pluck('name')->sort()->implode(', ') ?: null,
             'job_title' => $user->job_title,
             'phone' => $user->phone,

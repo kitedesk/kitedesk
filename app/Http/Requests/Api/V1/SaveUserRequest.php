@@ -36,7 +36,7 @@ class SaveUserRequest extends AdminSaveUserRequest
 
     public function userData(): array
     {
-        /** @var array{name: string, email: string, type: string, organization_id?: int|null, timezone?: string|null, locale?: string|null, job_title?: string|null, phone?: string|null, group_ids?: list<int>} */
+        /** @var array{name: string, email: string, type: string, organization_id?: int|null, organization_role?: string|null, timezone?: string|null, locale?: string|null, job_title?: string|null, phone?: string|null, group_ids?: list<int>} */
         return collect(parent::userData())->except('invite')->all();
     }
 }

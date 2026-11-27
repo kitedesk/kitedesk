@@ -38,6 +38,7 @@ type Props = {
         avatar: string | null;
         role: string;
         organization_id: number | null;
+        organization_role: 'member' | 'authorized_contact' | null;
         timezone: string | null;
         locale: string | null;
         job_title: string | null;
@@ -73,6 +74,9 @@ export default function UserForm({
     const [groupIds, setGroupIds] = useState<number[]>(user?.group_ids ?? []);
     const [organizationId, setOrganizationId] = useState(
         user?.organization_id ? String(user.organization_id) : NONE,
+    );
+    const [organizationRole, setOrganizationRole] = useState(
+        user?.organization_role ?? 'member',
     );
 
     return (
@@ -119,6 +123,8 @@ export default function UserForm({
                     role_id: isCustomer(role) ? null : Number(role),
                     organization_id:
                         organizationId === NONE ? null : Number(organizationId),
+                    organization_role:
+                        organizationId === NONE ? null : organizationRole,
                     group_ids: groupIds,
                 })}
                 className="max-w-2xl space-y-6"
@@ -264,6 +270,35 @@ export default function UserForm({
                                                 )}
                                             </SelectContent>
                                         </Select>
+                                        {organizationId !== NONE && (
+                                            <Select
+                                                value={organizationRole}
+                                                onValueChange={(value) =>
+                                                    setOrganizationRole(
+                                                        value as
+                                                            | 'member'
+                                                            | 'authorized_contact',
+                                                    )
+                                                }
+                                            >
+                                                <SelectTrigger
+                                                    className="w-full"
+                                                    aria-label={t('Role')}
+                                                >
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="member">
+                                                        {t('Member')}
+                                                    </SelectItem>
+                                                    <SelectItem value="authorized_contact">
+                                                        {t(
+                                                            'Authorized contact (may act for the organization)',
+                                                        )}
+                                                    </SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        )}
                                     </div>
                                 ) : (
                                     <div className="grid gap-2">

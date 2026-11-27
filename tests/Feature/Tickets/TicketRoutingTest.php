@@ -69,7 +69,9 @@ test('rules can match any condition, including custom fields and the requester',
     ], match: 'any')->routesTo($this->billing)->create();
 
     expect(routedTicket(['custom_fields' => ['order_number' => 'inv-2001']])->group_id)->toBe($this->billing->id)
-        ->and(routedTicket(requester: User::factory()->create(['email' => 'ana@acme.test']))->group_id)->toBe($this->billing->id)
+        ->and(routedTicket(requester: User::factory()->inOrganization($acme)->create())->group_id)->toBe($this->billing->id)
+        // A matching email domain alone isn't membership.
+        ->and(routedTicket(requester: User::factory()->create(['email' => 'ana@acme.test']))->group_id)->toBeNull()
         ->and(routedTicket(['custom_fields' => ['order_number' => '2001']])->group_id)->toBeNull();
 });
 
