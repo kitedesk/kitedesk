@@ -126,31 +126,29 @@ export function TicketProperties({
                 </Property>
             )}
 
-            <div className="grid grid-cols-2 gap-3">
-                <Property label={t('Status')}>
-                    <CustomStatusSelect
-                        value={
-                            ticket.custom_status
-                                ? String(ticket.custom_status.id)
-                                : undefined
-                        }
-                        statuses={options.customStatuses}
-                        disabled={disabled}
-                        onChange={(value) =>
-                            save({ ticket_status_id: Number(value) })
-                        }
-                    />
-                </Property>
+            <Property label={t('Status')}>
+                <CustomStatusSelect
+                    value={
+                        ticket.custom_status
+                            ? String(ticket.custom_status.id)
+                            : undefined
+                    }
+                    statuses={options.customStatuses}
+                    disabled={disabled}
+                    onChange={(value) =>
+                        save({ ticket_status_id: Number(value) })
+                    }
+                />
+            </Property>
 
-                <Property label={t('Priority')}>
-                    <PropertySelect
-                        value={ticket.priority}
-                        disabled={disabled}
-                        options={options.priorities}
-                        onChange={(value) => save({ priority: value })}
-                    />
-                </Property>
-            </div>
+            <Property label={t('Priority')}>
+                <PropertySelect
+                    value={ticket.priority}
+                    disabled={disabled}
+                    options={options.priorities}
+                    onChange={(value) => save({ priority: value })}
+                />
+            </Property>
 
             <Property label={t('Type')}>
                 <PropertySelect
