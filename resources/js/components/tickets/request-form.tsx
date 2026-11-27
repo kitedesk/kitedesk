@@ -17,7 +17,7 @@ import { useTranslation } from '@/hooks/use-translation';
 import { formatFileSize } from '@/lib/tickets';
 import { search } from '@/routes/help';
 import { show as showArticle } from '@/routes/help/articles';
-import type { CategoryNode, FormFields } from '@/types';
+import type { CategoryNode, FormFields, TicketField } from '@/types';
 
 type Suggestion = {
     id: number;
@@ -33,12 +33,14 @@ type Suggestion = {
 export function RequestForm({
     categories,
     forms,
+    globalFields,
     defaultFormId,
     action,
     guest = false,
 }: {
     categories: CategoryNode[];
     forms: FormFields;
+    globalFields: TicketField[];
     defaultFormId: number | null;
     action: string;
     guest?: boolean;
@@ -61,6 +63,7 @@ export function RequestForm({
         forms,
         form.data.category_id,
         defaultFormId,
+        globalFields,
     );
 
     // Ticket deflection: suggest help articles while the customer describes the problem.

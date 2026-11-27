@@ -55,6 +55,7 @@ class WidgetController extends Controller
             'brandName' => Branding::current()->name(),
             'categories' => TicketCatalog::categories(customerFacing: true),
             'forms' => TicketCatalog::forms(customerFacing: true),
+            'globalFields' => TicketCatalog::globalFields(customerFacing: true),
             'defaultFormId' => TicketCatalog::defaultFormId(),
         ])->toResponse($request);
 

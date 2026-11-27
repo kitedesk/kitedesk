@@ -17,6 +17,7 @@ use App\Domain\Tickets\Models\CannedResponse;
 use App\Domain\Tickets\Models\SavedView;
 use App\Domain\Tickets\Models\Tag;
 use App\Domain\Tickets\Models\Ticket;
+use App\Domain\Tickets\Models\TicketField;
 use App\Domain\Tickets\Support\BoardPreferences;
 use App\Domain\Tickets\Support\CustomStatuses;
 use App\Domain\Tickets\Support\TicketBoard;
@@ -129,6 +130,7 @@ class TicketController extends Controller
                 AllowedFilter::callback('category_id', fn (Builder $query, mixed $value) => TicketFilters::category($query, $value)),
                 AllowedFilter::callback('tag', fn (Builder $query, mixed $value) => TicketFilters::tag($query, $value)),
                 AllowedFilter::callback('search', fn (Builder $query, mixed $value) => TicketFilters::search($query, $value)),
+                ...TicketFilters::allowedFieldFilters(),
             )
             ->allowedSorts('updated_at', 'created_at', 'id')
             ->defaultSort($savedView->sort ?? '-updated_at');
@@ -155,6 +157,7 @@ class TicketController extends Controller
         return Inertia::render('agent/tickets/create', [
             'options' => fn () => $this->options(),
             'forms' => TicketCatalog::forms(),
+            'globalFields' => TicketCatalog::globalFields(),
             'defaultFormId' => TicketCatalog::defaultFormId(),
             'requester' => $request->integer('requester_id')
                 ? User::query()->select(['id', 'name', 'email'])->find($request->integer('requester_id'))
@@ -333,6 +336,7 @@ class TicketController extends Controller
             'groups' => Group::query()->orderBy('name')->get(['id', 'name']),
             'categories' => TicketCatalog::categories(),
             'tags' => Tag::query()->orderBy('name')->limit(200)->pluck('name'),
+            'filterFields' => TicketFilters::filterableFields()->map(fn (TicketField $field): array => $field->toFormArray(required: false))->values(),
         ];
     }
 

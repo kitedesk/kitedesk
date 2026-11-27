@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Domain\Tickets\Enums\TicketFieldType;
+use App\Domain\Tickets\Enums\TicketType;
 use App\Domain\Tickets\Models\TicketField;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
@@ -26,6 +27,9 @@ class TicketFieldFactory extends Factory
             'label' => $label,
             'type' => TicketFieldType::Text,
             'options' => null,
+            'is_global' => false,
+            'is_required' => false,
+            'ticket_types' => null,
             'is_visible_to_customers' => true,
             'position' => 0,
         ];
@@ -42,6 +46,35 @@ class TicketFieldFactory extends Factory
             'type' => TicketFieldType::Select,
             'options' => $values,
         ]);
+    }
+
+    /**
+     * A multi-select with the given option values.
+     *
+     * @param  list<string>  $values
+     */
+    public function multiSelect(array $values): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'type' => TicketFieldType::MultiSelect,
+            'options' => $values,
+        ]);
+    }
+
+    /**
+     * Shown on every ticket, whatever its form.
+     */
+    public function global(bool $required = false): static
+    {
+        return $this->state(fn (array $attributes) => ['is_global' => true, 'is_required' => $required]);
+    }
+
+    /**
+     * Limited to tickets of the given types.
+     */
+    public function forTypes(TicketType ...$types): static
+    {
+        return $this->state(fn (array $attributes) => ['ticket_types' => array_map(fn (TicketType $type): string => $type->value, $types)]);
     }
 
     public function agentOnly(): static

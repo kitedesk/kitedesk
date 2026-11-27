@@ -24,13 +24,14 @@ import {
 import { useTranslation } from '@/hooks/use-translation';
 import { search } from '@/routes/agent';
 import { create, index, store } from '@/routes/agent/tickets';
-import type { FormFields, TicketOptions } from '@/types';
+import type { FormFields, TicketField, TicketOptions } from '@/types';
 
 type Requester = { id: number; name: string; email: string };
 
 type Props = {
     options: TicketOptions;
     forms: FormFields;
+    globalFields: TicketField[];
     defaultFormId: number | null;
     requester: Requester | null;
 };
@@ -40,6 +41,7 @@ const NONE = '__none';
 export default function CreateTicket({
     options,
     forms,
+    globalFields,
     defaultFormId,
     requester,
 }: Props) {
@@ -66,6 +68,8 @@ export default function CreateTicket({
         forms,
         form.data.category_id,
         defaultFormId,
+        globalFields,
+        form.data.type,
     );
 
     const submit = (event: React.FormEvent) => {

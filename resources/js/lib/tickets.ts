@@ -232,5 +232,9 @@ export function displayValue(value: unknown): string {
         return String(value);
     }
 
+    if (Array.isArray(value)) {
+        return value.map(String).join(', ');
+    }
+
     return JSON.stringify(value);
 }

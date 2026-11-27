@@ -7,6 +7,7 @@ use App\Domain\Tickets\Enums\TicketPriority;
 use App\Domain\Tickets\Enums\TicketStatus;
 use App\Domain\Tickets\Models\Ticket;
 use App\Domain\Tickets\Support\CustomStatuses;
+use App\Domain\Tickets\Support\TicketFilters;
 use App\Models\User;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Database\Eloquent\Builder;
@@ -19,7 +20,7 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
 #[Name('search_tickets')]
-#[Description('Search the tickets you can see, newest activity first. Matches the subject or ticket number; filter by status, priority, group or tickets assigned to you. Returns ticket references for get_ticket.')]
+#[Description('Search the tickets you can see, newest activity first. Matches the subject or ticket number; filter by status, priority, group, drop-down/multi-select/checkbox custom fields, or tickets assigned to you. Returns ticket references for get_ticket.')]
 #[IsReadOnly]
 class SearchTicketsTool extends Tool
 {
@@ -36,6 +37,7 @@ class SearchTicketsTool extends Tool
             'priority' => ['nullable', Rule::enum(TicketPriority::class)],
             'group_id' => ['nullable', 'integer'],
             'assigned_to_me' => ['nullable', 'boolean'],
+            'custom_fields' => ['nullable', 'array'],
             'limit' => ['nullable', 'integer', 'min:1', 'max:50'],
         ]);
 
@@ -54,6 +56,13 @@ class SearchTicketsTool extends Tool
             ->when($input['priority'] ?? null, fn (Builder $query, string $priority) => $query->where('priority', $priority))
             ->when($input['group_id'] ?? null, fn (Builder $query, int $group) => $query->where('group_id', $group))
             ->when($input['assigned_to_me'] ?? false, fn (Builder $query) => $query->where('assignee_id', $user->id))
+            ->when($input['custom_fields'] ?? null, function (Builder $query, array $values): void {
+                foreach (TicketFilters::filterableFields() as $field) {
+                    if (array_key_exists($field->key, $values)) {
+                        TicketFilters::customField($query, $field, $values[$field->key]);
+                    }
+                }
+            })
             ->latest('updated_at')
             ->limit($input['limit'] ?? 20)
             ->get();
@@ -85,6 +94,7 @@ class SearchTicketsTool extends Tool
             'priority' => $schema->string()->enum(array_column(TicketPriority::cases(), 'value')),
             'group_id' => $schema->integer(),
             'assigned_to_me' => $schema->boolean()->description('Only tickets assigned to you.'),
+            'custom_fields' => $schema->object()->description('Match drop-down, multi-select or checkbox custom fields by key, e.g. {"plan": "Pro"}. A list matches any of its options; checkboxes take true or false.'),
             'limit' => $schema->integer()->min(1)->max(50)->description('Defaults to 20.'),
         ];
     }

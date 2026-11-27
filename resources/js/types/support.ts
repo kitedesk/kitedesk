@@ -157,7 +157,8 @@ export type TicketFieldType =
     | 'number'
     | 'date'
     | 'checkbox'
-    | 'select';
+    | 'select'
+    | 'multiselect';
 
 /**
  * A custom field in the current locale, as shown on a form.
@@ -169,6 +170,10 @@ export type TicketField = {
     type: TicketFieldType;
     options: string[] | null;
     is_required: boolean;
+    /** Shown on every ticket, whatever its form. */
+    is_global: boolean;
+    /** Ticket types the field applies to; null for all types. */
+    ticket_types: string[] | null;
     is_visible_to_customers: boolean;
 };
 
@@ -212,6 +217,8 @@ export type TicketOptions = {
     groups: NamedRecord[];
     categories: CategoryNode[];
     tags: string[];
+    /** Custom fields the ticket list can be filtered by (`filter[field_<key>]`). */
+    filterFields?: TicketField[];
 };
 
 export type Paginated<T> = {

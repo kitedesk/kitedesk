@@ -7,6 +7,7 @@ use App\Domain\Tickets\Actions\DeleteTicket;
 use App\Domain\Tickets\Actions\UpdateTicket;
 use App\Domain\Tickets\Enums\TicketChannel;
 use App\Domain\Tickets\Models\Ticket;
+use App\Domain\Tickets\Support\TicketFilters;
 use App\Http\Requests\Api\V1\StoreTicketRequest;
 use App\Http\Requests\Api\V1\UpdateTicketRequest;
 use App\Http\Resources\Api\V1\TicketResource;
@@ -30,6 +31,8 @@ class TicketController extends ApiController
      *
      * Filter with `filter[status]`, `filter[priority]`, `filter[assignee_id]`, `filter[group_id]`,
      * `filter[category_id]`, `filter[requester_id]`, `filter[organization_id]` and `filter[updated_since]` (ISO 8601).
+     * Filter by a drop-down, multi-select or checkbox custom field with `filter[field_<key>]`
+     * (comma-separate options to match any of them; `true`/`false` for checkboxes).
      * Sort with `sort=updated_at|-updated_at|created_at|-created_at|id|-id`.
      */
     public function index(Request $request): AnonymousResourceCollection
@@ -44,6 +47,7 @@ class TicketController extends ApiController
                 AllowedFilter::exact('requester_id'),
                 AllowedFilter::exact('organization_id'),
                 $this->updatedSince(),
+                ...TicketFilters::allowedFieldFilters(),
             )
             ->allowedSorts('updated_at', 'created_at', 'id')
             ->defaultSort('-updated_at')

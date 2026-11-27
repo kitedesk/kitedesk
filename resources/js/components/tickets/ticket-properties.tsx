@@ -1,5 +1,5 @@
-import { router } from '@inertiajs/react';
-import { X } from 'lucide-react';
+import { Link, router } from '@inertiajs/react';
+import { Plus, X } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { CategorySelect } from '@/components/tickets/category-select';
@@ -15,8 +15,10 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { usePermissions } from '@/hooks/use-permissions';
 import { useTranslation } from '@/hooks/use-translation';
 import { cn } from '@/lib/utils';
+import { index as ticketFieldsIndex } from '@/routes/admin/ticket-fields';
 import { update } from '@/routes/agent/tickets';
 import type {
     Ticket,
@@ -49,6 +51,7 @@ export function TicketProperties({
     disabled = false,
 }: Props) {
     const { t } = useTranslation();
+    const { can } = usePermissions();
     const save = (changes: Record<string, unknown>) =>
         router.patch(update.url(ticket.id), changes as never, {
             preserveScroll: true,
@@ -179,9 +182,19 @@ export function TicketProperties({
             </Property>
 
             {fields.map((field) => (
-                <Property key={field.id} label={field.label}>
+                <Property
+                    key={field.id}
+                    label={field.label}
+                    required={field.is_required}
+                >
                     <CustomFieldInput
-                        key={`${field.id}-${ticket.updated_at}`}
+                        // Text inputs keep a draft: start it over after every save. Multi-selects
+                        // keep no draft, and stay open while several options are picked.
+                        key={
+                            field.type === 'multiselect'
+                                ? field.id
+                                : `${field.id}-${ticket.updated_at}`
+                        }
                         field={field}
                         value={ticket.custom_fields[field.key]}
                         disabled={disabled}
@@ -192,6 +205,15 @@ export function TicketProperties({
                     />
                 </Property>
             ))}
+
+            {fields.length === 0 && can('admin.ticket_setup') && (
+                <Link
+                    href={ticketFieldsIndex()}
+                    className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                >
+                    <Plus className="size-3" /> {t('Add custom fields')}
+                </Link>
+            )}
 
             {satisfaction && (
                 <Property label={t('Satisfaction')}>
@@ -215,11 +237,20 @@ export function TicketProperties({
     );
 }
 
-function Property({ label, children }: { label: string; children: ReactNode }) {
+function Property({
+    label,
+    required = false,
+    children,
+}: {
+    label: string;
+    required?: boolean;
+    children: ReactNode;
+}) {
     return (
         <div className="grid gap-1.5">
             <Label className="text-xs font-medium text-muted-foreground">
                 {label}
+                {required && <span className="text-destructive"> *</span>}
             </Label>
             {children}
         </div>

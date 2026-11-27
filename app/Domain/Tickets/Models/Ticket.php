@@ -434,7 +434,7 @@ class Ticket extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['subject', 'status', 'ticket_status_id', 'priority', 'type', 'assignee_id', 'group_id', 'category_id'])
+            ->logOnly(['subject', 'status', 'ticket_status_id', 'priority', 'type', 'assignee_id', 'group_id', 'category_id', 'custom_fields'])
             ->logOnlyDirty()
             ->dontLogEmptyChanges();
     }
