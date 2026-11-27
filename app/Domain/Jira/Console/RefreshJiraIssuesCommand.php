@@ -2,6 +2,7 @@
 
 namespace App\Domain\Jira\Console;
 
+use App\Domain\Jira\Actions\MarkIssueDeleted;
 use App\Domain\Jira\Actions\SyncIssue;
 use App\Domain\Jira\Exceptions\JiraException;
 use App\Domain\Jira\Models\JiraIssueLink;
@@ -12,7 +13,9 @@ use Illuminate\Console\Command;
 
 /**
  * Catches up on linked issues whose webhooks never arrived: every issue not refreshed in the
- * last 15 minutes is read again, 100 at a time.
+ * last 15 minutes is read again, 100 at a time. Jira rejects a whole search when one of its
+ * issues is gone or hidden, so such a batch is read issue by issue instead, and issues Jira
+ * no longer has are marked deleted.
  */
 class RefreshJiraIssuesCommand extends Command
 {
@@ -20,7 +23,7 @@ class RefreshJiraIssuesCommand extends Command
 
     protected $description = 'Refresh linked Jira issues that webhooks may have missed';
 
-    public function handle(SyncIssue $syncIssue): int
+    public function handle(SyncIssue $syncIssue, MarkIssueDeleted $markIssueDeleted): int
     {
         if (! JiraModule::isEnabled() || ! JiraSettings::current()->isConnected()) {
             return self::SUCCESS;
@@ -41,15 +44,31 @@ class RefreshJiraIssuesCommand extends Command
             try {
                 $issues = collect($client->search("id in ({$ids})", 100))->keyBy('id');
             } catch (JiraException $exception) {
-                $this->warn($exception->getMessage());
+                if ($exception->status !== 400) {
+                    $this->warn($exception->getMessage());
 
-                return self::FAILURE;
+                    return self::FAILURE;
+                }
+
+                $issues = null;
             }
 
             foreach ($batch as $issueId => $links) {
-                $issue = $issues->get((string) $issueId);
+                try {
+                    $issue = $issues !== null ? $issues->get((string) $issueId) : $client->issue((string) $issueId);
+                } catch (JiraException $exception) {
+                    if ($exception->status === 404) {
+                        $links->each(fn (JiraIssueLink $link) => $markIssueDeleted->handle($link));
 
-                // Missing: deleted, moved out of reach, or hidden from this account. Webhooks report deletions.
+                        continue;
+                    }
+
+                    $this->warn($exception->getMessage());
+
+                    return self::FAILURE;
+                }
+
+                // Left out of a search that worked: hidden from this account for now.
                 if ($issue === null) {
                     continue;
                 }

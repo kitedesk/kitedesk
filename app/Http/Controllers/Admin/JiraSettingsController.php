@@ -79,7 +79,7 @@ class JiraSettingsController extends Controller
         );
 
         try {
-            $account = JiraClient::make($settings)->myself();
+            $account = JiraClient::make($settings, tracksHealth: false)->myself();
         } catch (JiraException $exception) {
             Inertia::flash('toast', ['type' => 'error', 'message' => __('The connection failed: :error', ['error' => $exception->getMessage()])]);
 

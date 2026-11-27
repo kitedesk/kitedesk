@@ -104,3 +104,31 @@ test('a refused token tells the integration admins once and shows on the panel',
         ->getJson(route('agent.tickets.jira.index', $this->ticket))
         ->assertJsonPath('error', fn (?string $error) => str_contains((string) $error, 'refused'));
 });
+
+test('when Jira rejects a batch, the refresh reads each issue and marks the ones Jira no longer has', function () {
+    $this->link->update(['issue_id' => '10012', 'last_synced_at' => now()->subHour()]);
+    $gone = JiraIssueLink::factory()->for($this->ticket)->create(['issue_id' => '10050', 'issue_key' => 'ENG-50', 'last_synced_at' => now()->subHour()]);
+
+    Http::fake([
+        Jira::API.'/search/jql' => Http::response(['errorMessages' => ["An issue with key '10050' does not exist for field 'id'."]], 400),
+        Jira::API.'/issue/10012?*' => Http::response(Jira::issue('ENG-12', '10012', 'In Progress', 'indeterminate')),
+        Jira::API.'/issue/10050?*' => Http::response(['errorMessages' => ['Issue does not exist']], 404),
+    ]);
+
+    $this->artisan('jira:refresh')->assertSuccessful();
+
+    expect($this->link->refresh()->status_category)->toBe(StatusCategory::InProgress)
+        ->and($gone->refresh()->deleted_at_jira)->not->toBeNull()
+        ->and($this->ticket->messages()->pluck('body')->implode(' '))->toContain('ENG-50 was deleted in Jira');
+});
+
+test('a note whose issue was unlinked before it was sent is dropped quietly', function () {
+    $note = $this->ticket->messages()->create(['author_id' => $this->agent->id, 'body' => '<p>Note</p>', 'is_internal' => true, 'channel' => 'agent']);
+    $job = new PostCommentToJira($this->link, $note);
+    $this->link->delete();
+
+    // The sync queue serializes the job like a worker would; the missing link must not fail it.
+    dispatch($job);
+
+    Http::assertNothingSent();
+});

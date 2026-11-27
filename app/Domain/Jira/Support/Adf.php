@@ -118,8 +118,8 @@ final class Adf
             $tag === 'p' => [self::withContent(['type' => 'paragraph'], self::trimInline(self::inlineChildren($element, [])))],
             (bool) preg_match('/^h([1-6])$/', $tag, $level) => [self::withContent(['type' => 'heading', 'attrs' => ['level' => (int) $level[1]]], self::trimInline(self::inlineChildren($element, [])))],
             $tag === 'ul', $tag === 'ol' => [self::list($element, $tag === 'ul' ? 'bulletList' : 'orderedList')],
-            $tag === 'blockquote' => [self::withContent(['type' => 'blockquote'], self::blocks($element) ?: [['type' => 'paragraph']])],
-            $tag === 'pre' => [self::withContent(['type' => 'codeBlock'], $element->textContent === '' ? [] : [['type' => 'text', 'text' => rtrim($element->textContent, "\n")]])],
+            $tag === 'blockquote' => [self::withContent(['type' => 'blockquote'], self::nested(self::blocks($element)) ?: [['type' => 'paragraph']])],
+            $tag === 'pre' => [self::withContent(['type' => 'codeBlock'], rtrim($element->textContent, "\n") === '' ? [] : [['type' => 'text', 'text' => rtrim($element->textContent, "\n")]])],
             $tag === 'hr' => [['type' => 'rule']],
             in_array($tag, ['div', 'section', 'article', 'li'], true) => self::blocks($element),
             default => null,
@@ -135,7 +135,7 @@ final class Adf
 
         foreach ($element->childNodes as $child) {
             if ($child instanceof DOMElement && strtolower($child->tagName) === 'li') {
-                $items[] = ['type' => 'listItem', 'content' => self::blocks($child) ?: [['type' => 'paragraph']]];
+                $items[] = ['type' => 'listItem', 'content' => self::nested(self::blocks($child)) ?: [['type' => 'paragraph']]];
             }
         }
 
@@ -166,7 +166,7 @@ final class Adf
         if ($node instanceof DOMText) {
             $text = preg_replace('/\s+/u', ' ', $node->textContent) ?? '';
 
-            return $text === '' ? [] : [['type' => 'text', 'text' => $text, ...($marks !== [] ? ['marks' => $marks] : [])]];
+            return $text === '' ? [] : [self::text($text, $marks)];
         }
 
         if (! $node instanceof DOMElement) {
@@ -183,7 +183,7 @@ final class Adf
         if ($node->getAttribute('data-type') === 'mention') {
             $label = $node->getAttribute('data-label') ?: ltrim($node->textContent, '@');
 
-            return [['type' => 'text', 'text' => '@'.$label, ...($marks !== [] ? ['marks' => $marks] : [])]];
+            return [self::text('@'.$label, $marks)];
         }
 
         $mark = match ($tag) {
@@ -197,6 +197,50 @@ final class Adf
         };
 
         return self::inlineChildren($node, $mark !== null ? [...$marks, $mark] : $marks);
+    }
+
+    /**
+     * A text node. ADF allows a mark once per node, and code only together with a link.
+     *
+     * @param  list<array<string, mixed>>  $marks
+     * @return array<string, mixed>
+     */
+    private static function text(string $text, array $marks): array
+    {
+        $byType = [];
+
+        foreach ($marks as $mark) {
+            $byType[$mark['type']] = $mark;
+        }
+
+        if (isset($byType['code'])) {
+            $byType = array_intersect_key($byType, ['code' => true, 'link' => true]);
+        }
+
+        return ['type' => 'text', 'text' => $text, ...($byType !== [] ? ['marks' => array_values($byType)] : [])];
+    }
+
+    /**
+     * Blocks as list items and quotes may hold them: paragraphs, lists and code. Headings
+     * become paragraphs, quotes are unwrapped and rules are dropped.
+     *
+     * @param  list<array<string, mixed>>  $blocks
+     * @return list<array<string, mixed>>
+     */
+    private static function nested(array $blocks): array
+    {
+        $result = [];
+
+        foreach ($blocks as $block) {
+            $result = [...$result, ...match ($block['type']) {
+                'heading' => [self::withContent(['type' => 'paragraph'], $block['content'] ?? [])],
+                'blockquote' => self::nested($block['content'] ?? []),
+                'rule' => [],
+                default => [$block],
+            }];
+        }
+
+        return $result;
     }
 
     /**

@@ -3,9 +3,12 @@
 namespace App\Domain\Jira\Actions;
 
 use App\Domain\Jira\Enums\CommentDirection;
+use App\Domain\Jira\Exceptions\JiraException;
 use App\Domain\Jira\Models\JiraCommentLink;
 use App\Domain\Jira\Models\JiraIssueLink;
 use App\Domain\Jira\Support\Adf;
+use App\Domain\Jira\Support\JiraClient;
+use App\Domain\Jira\Support\WikiMarkup;
 use App\Domain\Support\RichText;
 use App\Domain\Tickets\Actions\AddMessage;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -13,7 +16,9 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Copies a Jira comment to the ticket as an internal note, once. Comments KiteDesk posted
- * itself are recognised and skipped, so notes don't bounce back and forth.
+ * itself are skipped, so notes don't bounce back and forth: those written by the Jira
+ * account KiteDesk signs in as, and (in case that account can't be looked up) those that
+ * start with KiteDesk's marker.
  */
 class ImportComment
 {
@@ -28,9 +33,9 @@ class ImportComment
     public function handle(JiraIssueLink $link, array $comment): void
     {
         $body = $comment['body'] ?? '';
-        $html = is_array($body) ? Adf::toHtml($body) : self::plainTextToHtml((string) $body);
+        $html = is_array($body) ? Adf::toHtml($body) : WikiMarkup::toHtml((string) $body);
 
-        if (str_starts_with(trim(strip_tags($html)), self::MARKER)) {
+        if ($this->isOwn($comment, $html)) {
             return;
         }
 
@@ -60,10 +65,25 @@ class ImportComment
         }
     }
 
-    private static function plainTextToHtml(string $text): string
+    /**
+     * @param  array<string, mixed>  $comment
+     */
+    private function isOwn(array $comment, string $html): bool
     {
-        $paragraphs = preg_split('/\R{2,}/', trim($text)) ?: [];
+        if (str_starts_with(trim(html_entity_decode(strip_tags($html))), self::MARKER)) {
+            return true;
+        }
 
-        return implode('', array_map(fn (string $paragraph): string => '<p>'.nl2br(e($paragraph), false).'</p>', $paragraphs));
+        $author = $comment['author']['accountId'] ?? null;
+
+        if (! is_string($author) || $author === '') {
+            return false;
+        }
+
+        try {
+            return $author === JiraClient::make()->accountId();
+        } catch (JiraException) {
+            return false;
+        }
     }
 }

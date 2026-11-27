@@ -52,3 +52,21 @@ test('ADF from Jira becomes HTML, escaped', function () {
 
     expect($html)->toBe('<h2>Fix</h2><p>&lt;b&gt;not bold&lt;/b&gt; <em><a href="https://docs.test">docs</a></em>@Dana</p><ol><li><p>Step</p></li></ol><pre><code>a &lt; b</code></pre>kept');
 });
+
+test('the result keeps to what Jira accepts', function () {
+    $document = Adf::fromHtml(
+        '<p><strong><code>v2</code></strong> <a href="https://x.test"><code>link</code></a></p>'
+        .'<ul><li><h2>Heading</h2><blockquote><p>Quote</p></blockquote><hr></li></ul>'
+        .'<blockquote><blockquote><p>Deep</p></blockquote></blockquote>'
+        ."<pre>\n</pre>",
+    );
+
+    expect($document['content'][0]['content'][0])->toBe(['type' => 'text', 'text' => 'v2', 'marks' => [['type' => 'code']]])
+        ->and($document['content'][0]['content'][2])->toBe(['type' => 'text', 'text' => 'link', 'marks' => [['type' => 'link', 'attrs' => ['href' => 'https://x.test']], ['type' => 'code']]])
+        ->and($document['content'][1]['content'][0]['content'])->toBe([
+            ['type' => 'paragraph', 'content' => [['type' => 'text', 'text' => 'Heading']]],
+            ['type' => 'paragraph', 'content' => [['type' => 'text', 'text' => 'Quote']]],
+        ])
+        ->and($document['content'][2])->toBe(['type' => 'blockquote', 'content' => [['type' => 'paragraph', 'content' => [['type' => 'text', 'text' => 'Deep']]]]])
+        ->and($document['content'][3])->toBe(['type' => 'codeBlock']);
+});

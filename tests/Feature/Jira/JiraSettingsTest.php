@@ -1,6 +1,7 @@
 <?php
 
 use App\Domain\Jira\Enums\StatusCategory;
+use App\Domain\Jira\Support\JiraHealth;
 use App\Domain\Jira\Support\JiraSettings;
 use App\Domain\Support\Extensions\ModuleRegistry;
 use App\Domain\Support\Models\Setting;
@@ -8,6 +9,7 @@ use App\Domain\Tickets\Enums\TicketStatus;
 use App\Domain\Tickets\Support\CustomStatuses;
 use App\Models\User;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Notification;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\Fixtures\Jira\Jira;
 
@@ -105,4 +107,28 @@ test('the settings need the integrations permission', function () {
     $this->actingAs(User::factory()->agent()->create())
         ->get(route('admin.jira.edit'))
         ->assertForbidden();
+});
+
+test('testing other credentials leaves the saved connection\'s state alone', function () {
+    Notification::fake();
+    $this->actingAs($this->admin)->put(route('admin.jira.update'), jiraForm());
+    Http::fake(['acme.atlassian.net/rest/api/3/myself' => Http::sequence()
+        ->push(null, 401)
+        ->push(['accountId' => 'x', 'displayName' => 'Other'])]);
+
+    $this->actingAs($this->admin)
+        ->post(route('admin.jira.test'), ['site_url' => 'https://acme.atlassian.net', 'email' => 'bot@acme.test', 'api_token' => 'typo'])
+        ->assertInertiaFlash('toast.type', 'error');
+
+    expect(JiraHealth::error())->toBeNull();
+    Notification::assertNothingSent();
+
+    // A real outage stays reported even when a test with other credentials works.
+    JiraHealth::fail('Jira refused the email and API token.');
+
+    $this->actingAs($this->admin)
+        ->post(route('admin.jira.test'), ['site_url' => 'https://acme.atlassian.net', 'email' => 'other@acme.test', 'api_token' => 'other'])
+        ->assertInertiaFlash('toast.type', 'success');
+
+    expect(JiraHealth::error())->not->toBeNull();
 });

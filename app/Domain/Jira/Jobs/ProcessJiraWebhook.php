@@ -3,11 +3,11 @@
 namespace App\Domain\Jira\Jobs;
 
 use App\Domain\Jira\Actions\ImportComment;
+use App\Domain\Jira\Actions\MarkIssueDeleted;
 use App\Domain\Jira\Actions\SyncIssue;
 use App\Domain\Jira\Models\JiraIssueLink;
 use App\Domain\Jira\Support\JiraClient;
 use App\Domain\Jira\Support\JiraModule;
-use App\Domain\Tickets\Actions\AddMessage;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
@@ -33,7 +33,7 @@ class ProcessJiraWebhook implements ShouldQueue
         return [10, 60];
     }
 
-    public function handle(SyncIssue $syncIssue, ImportComment $importComment, AddMessage $addMessage): void
+    public function handle(SyncIssue $syncIssue, ImportComment $importComment, MarkIssueDeleted $markIssueDeleted): void
     {
         $issue = is_array($this->payload['issue'] ?? null) ? $this->payload['issue'] : null;
 
@@ -46,27 +46,10 @@ class ProcessJiraWebhook implements ShouldQueue
         foreach ($links as $link) {
             match ($this->payload['webhookEvent'] ?? null) {
                 'jira:issue_updated' => $syncIssue->handle($link, JiraClient::make()->normalize($issue)),
-                'jira:issue_deleted' => $this->deleted($link, $addMessage),
+                'jira:issue_deleted' => $markIssueDeleted->handle($link),
                 'comment_created' => is_array($this->payload['comment'] ?? null) ? $importComment->handle($link, $this->payload['comment']) : null,
                 default => null,
             };
         }
-    }
-
-    private function deleted(JiraIssueLink $link, AddMessage $addMessage): void
-    {
-        if ($link->deleted_at_jira !== null) {
-            return;
-        }
-
-        $link->update(['deleted_at_jira' => now()]);
-
-        $addMessage->handle(
-            $link->ticket,
-            null,
-            '<p>'.e(__('Jira :key was deleted in Jira.', ['key' => $link->issue_key])).'</p>',
-            isInternal: true,
-            metadata: ['jira' => ['issue_key' => $link->issue_key, 'kind' => 'status']],
-        );
     }
 }

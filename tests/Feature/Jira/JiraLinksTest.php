@@ -151,3 +151,34 @@ test('the panel and its actions are gone while the module is off', function () {
         ->getJson(route('agent.tickets.jira.index', $this->ticket))
         ->assertNotFound();
 });
+
+test('search words lose the characters Jira reads as syntax', function () {
+    Http::fake([Jira::API.'/search/jql' => Http::response(['issues' => [Jira::issue()], 'isLast' => true])]);
+
+    $this->actingAs($this->agent)
+        ->getJson(route('agent.tickets.jira.search', ['ticket' => $this->ticket, 'q' => 'error: timeout (prod) "x"']))
+        ->assertOk()
+        ->assertJsonPath('issues.0.key', 'ENG-12');
+
+    Http::assertSent(fn (Request $request) => $request['jql'] === 'text ~ "error timeout prod x*" ORDER BY updated DESC');
+});
+
+test('the create form lists projects and their issue types, without subtasks', function () {
+    Http::fake([
+        Jira::API.'/project/search?*' => Http::response(['values' => [['key' => 'ENG', 'name' => 'Engineering']]]),
+        Jira::API.'/issue/createmeta/ENG/issuetypes?*' => Http::response(['issueTypes' => [
+            ['id' => '10001', 'name' => 'Bug', 'subtask' => false],
+            ['id' => '10003', 'name' => 'Sub-task', 'subtask' => true],
+        ]]),
+    ]);
+
+    $this->actingAs($this->agent)
+        ->getJson(route('agent.tickets.jira.projects', $this->ticket))
+        ->assertOk()
+        ->assertExactJson(['projects' => [['key' => 'ENG', 'name' => 'Engineering']]]);
+
+    $this->actingAs($this->agent)
+        ->getJson(route('agent.tickets.jira.issue-types', ['ticket' => $this->ticket, 'project' => 'ENG']))
+        ->assertOk()
+        ->assertExactJson(['issue_types' => [['id' => '10001', 'name' => 'Bug']]]);
+});

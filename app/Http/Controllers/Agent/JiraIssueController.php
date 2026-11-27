@@ -20,6 +20,9 @@ use Illuminate\Validation\ValidationException;
  * The Jira issues linked to a ticket, for the panel on the ticket page. Changes answer with
  * the panel again, so it can simply show what it gets. Jira's own errors come back as a
  * validation error on `jira`.
+ *
+ * Every action takes the ticket, even when it doesn't use it: that is what makes the route
+ * bind it, so the `can:view,ticket` middleware checks the real ticket.
  */
 class JiraIssueController extends Controller
 {
@@ -31,7 +34,7 @@ class JiraIssueController extends Controller
     /**
      * Issues matching a key, a Jira URL or words from their text, newest first.
      */
-    public function search(Request $request): JsonResponse
+    public function search(Request $request, Ticket $ticket): JsonResponse
     {
         $query = trim($request->string('q')->toString());
 
@@ -40,9 +43,15 @@ class JiraIssueController extends Controller
         }
 
         $key = self::issueKey($query);
+        $words = self::searchWords($query);
+
+        if ($key === null && $words === '') {
+            return response()->json(['issues' => []]);
+        }
+
         $jql = $key !== null
             ? 'key = "'.$key.'"'
-            : 'text ~ "'.addcslashes(mb_substr($query, 0, 100), '"\\').'*" ORDER BY updated DESC';
+            : 'text ~ "'.$words.'*" ORDER BY updated DESC';
 
         $issues = $this->jira(fn () => JiraClient::make()->search($jql, 10));
 
@@ -54,12 +63,12 @@ class JiraIssueController extends Controller
         ], $issues)]);
     }
 
-    public function projects(): JsonResponse
+    public function projects(Ticket $ticket): JsonResponse
     {
         return response()->json(['projects' => $this->jira(fn () => JiraClient::make()->projects())]);
     }
 
-    public function issueTypes(Request $request): JsonResponse
+    public function issueTypes(Request $request, Ticket $ticket): JsonResponse
     {
         $project = $request->validate(['project' => ['required', 'string', 'max:50']])['project'];
 
@@ -122,6 +131,17 @@ class JiraIssueController extends Controller
         }
 
         return null;
+    }
+
+    /**
+     * The words of a text search, without the characters Jira's text search reads as syntax
+     * (`+ - & | ! ( ) { } [ ] ^ ~ * ? : \ / " '`), which would make it reject the query.
+     */
+    public static function searchWords(string $query): string
+    {
+        $words = preg_replace('/[+\-&|!(){}\[\]^~*?:\\\\\/"\']+/u', ' ', mb_substr($query, 0, 100)) ?? '';
+
+        return trim((string) preg_replace('/\s+/u', ' ', $words));
     }
 
     private function respond(Request $request, Ticket $ticket): JsonResponse

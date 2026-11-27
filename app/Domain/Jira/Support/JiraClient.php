@@ -10,6 +10,7 @@ use App\Domain\Jira\Notifications\JiraNeedsAttention;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
 
@@ -26,23 +27,43 @@ class JiraClient
     /** Fields the create dialog fills itself, or Jira fills on its own. */
     private const array HANDLED_FIELDS = ['summary', 'description', 'issuetype', 'project', 'reporter'];
 
-    public function __construct(private JiraSettings $settings) {}
+    /**
+     * @param  bool  $tracksHealth  False for trying out credentials that aren't saved (the "Test
+     *                              connection" button): their failures and successes say nothing
+     *                              about the saved connection, so they don't touch `JiraHealth`
+     *                              or alert anyone.
+     */
+    public function __construct(private JiraSettings $settings, private bool $tracksHealth = true) {}
 
-    public static function make(?JiraSettings $settings = null): self
+    public static function make(?JiraSettings $settings = null, bool $tracksHealth = true): self
     {
-        return new self($settings ?? JiraSettings::current());
+        return new self($settings ?? JiraSettings::current(), $tracksHealth);
     }
 
     /**
      * The Jira account KiteDesk acts as.
      *
-     * @return array{name: string, email: string|null}
+     * @return array{id: string, name: string, email: string|null}
      */
     public function myself(): array
     {
         $account = $this->send(fn (PendingRequest $http) => $http->get('myself'))->json();
 
-        return ['name' => (string) ($account['displayName'] ?? ''), 'email' => $account['emailAddress'] ?? null];
+        return [
+            'id' => (string) ($account['accountId'] ?? ''),
+            'name' => (string) ($account['displayName'] ?? ''),
+            'email' => $account['emailAddress'] ?? null,
+        ];
+    }
+
+    /**
+     * The id of the Jira account KiteDesk acts as, remembered for a day per site and email.
+     */
+    public function accountId(): string
+    {
+        $key = 'jira:account:'.md5($this->settings->siteUrl.'|'.$this->settings->email);
+
+        return Cache::remember($key, now()->addDay(), fn (): string => $this->myself()['id']);
     }
 
     /**
@@ -225,7 +246,9 @@ class JiraClient
             throw new JiraException($this->errorMessage($response), $response->status());
         }
 
-        JiraHealth::clear();
+        if ($this->tracksHealth) {
+            JiraHealth::clear();
+        }
 
         return $response;
     }
@@ -235,7 +258,7 @@ class JiraClient
      */
     private function connectionLost(string $message): never
     {
-        if (JiraHealth::fail($message)) {
+        if ($this->tracksHealth && JiraHealth::fail($message)) {
             Notification::send(JiraNeedsAttention::recipients(), new JiraNeedsAttention($message));
         }
 

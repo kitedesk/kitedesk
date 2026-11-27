@@ -158,3 +158,36 @@ test('the webhook is gone while the module is off', function () {
 
     deliver(issueMoved('Done', 'done'))->assertNotFound();
 });
+
+test('comments by the Jira account KiteDesk uses, or in wiki markup with its marker, are not copied back', function () {
+    Http::fake([Jira::API.'/myself' => Http::response(['accountId' => 'kitedesk-bot', 'displayName' => 'KiteDesk Bot'])]);
+
+    deliver([
+        'webhookEvent' => 'comment_created',
+        'issue' => ['id' => '10012', 'key' => 'ENG-12'],
+        'comment' => ['id' => '510', 'author' => ['accountId' => 'kitedesk-bot', 'displayName' => 'KiteDesk Bot'], 'body' => 'Customer is on v2.2'],
+    ])->assertAccepted();
+
+    deliver([
+        'webhookEvent' => 'comment_created',
+        'issue' => ['id' => '10012', 'key' => 'ENG-12'],
+        'comment' => ['id' => '511', 'author' => ['accountId' => 'someone-else'], 'body' => '*[From KiteDesk ticket #1 · Ana:|https://kd.test/agent/tickets/1]*'."\nCustomer is on v2.2"],
+    ])->assertAccepted();
+
+    expect(TicketMessage::query()->count())->toBe(0);
+});
+
+test('comments in wiki markup are converted', function () {
+    Http::fake([Jira::API.'/myself' => Http::response(['accountId' => 'kitedesk-bot'])]);
+
+    deliver([
+        'webhookEvent' => 'comment_created',
+        'issue' => ['id' => '10012', 'key' => 'ENG-12'],
+        'comment' => ['id' => '520', 'author' => ['accountId' => 'dana', 'displayName' => 'Dana Dev'], 'body' => "Fixed in *v2.3*, see [notes|https://docs.test/2.3]\n\n* export\n* import"],
+    ])->assertAccepted();
+
+    expect(TicketMessage::query()->sole()->body)
+        ->toContain('<strong>v2.3</strong>')
+        ->toContain('<a href="https://docs.test/2.3"')
+        ->toContain('<li>export</li>');
+});

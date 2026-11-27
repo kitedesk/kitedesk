@@ -15,10 +15,14 @@ use App\Domain\Jira\Support\TicketRemoteLink;
 use App\Domain\Tickets\Models\TicketMessage;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Queue\Attributes\DeleteWhenMissingModels;
 
 /**
  * Posts an internal note to a linked issue as a comment, once.
+ *
+ * Skipped when its records are gone by the time it runs (e.g. the issue was unlinked).
  */
+#[DeleteWhenMissingModels]
 class PostCommentToJira implements ShouldQueue
 {
     use Queueable;
