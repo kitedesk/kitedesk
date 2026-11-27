@@ -1,6 +1,7 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import {
     FolderKanban,
+    SquareKanban,
     Puzzle,
     Receipt,
     Timer,
@@ -44,6 +45,7 @@ type Module = {
 const icons: Record<string, LucideIcon> = {
     puzzle: Puzzle,
     'folder-kanban': FolderKanban,
+    'square-kanban': SquareKanban,
     timer: Timer,
     receipt: Receipt,
 };
