@@ -2068,5 +2068,16 @@
     "Views, saved views and statuses listed one after the other, with the modules’ pages below.": "Visualizações, visualizações salvas e status listados em sequência, com as páginas dos módulos abaixo.",
     "Follow the default": "Seguir o padrão",
     "Currently: menus and submenus.": "Atualmente: menus e submenus.",
-    "Currently: classic list.": "Atualmente: lista clássica."
+    "Currently: classic list.": "Atualmente: lista clássica.",
+    "Add custom fields": "Adicionar campos personalizados",
+    "Fields capture extra data on tickets. Show a field on every ticket, or add it to ticket forms to choose where it appears and whether it is required.": "Os campos registram dados extras nos chamados. Mostre um campo em todos os chamados, ou adicione-o a formulários de chamado para escolher onde ele aparece e se é obrigatório.",
+    "on every ticket, required": "em todos os chamados, obrigatório",
+    "on every ticket": "em todos os chamados",
+    "Show on every ticket, whatever its form": "Mostrar em todos os chamados, qualquer que seja o formulário",
+    "Required (on new tickets and before solving)": "Obrigatório (em novos chamados e antes de resolver)",
+    "Ticket types": "Tipos de chamado",
+    "Leave all unchecked to show the field on every type. Fields limited to some types never show on the customer request form, since customers don't pick a type.": "Deixe todos desmarcados para mostrar o campo em todos os tipos. Campos limitados a alguns tipos nunca aparecem no formulário de solicitação do cliente, pois os clientes não escolhem um tipo.",
+    "More filters": "Mais filtros",
+    "Fill in \":field\" before solving the ticket.": "Preencha \":field\" antes de resolver o chamado.",
+    "Multi-select": "Seleção múltipla"
 }
