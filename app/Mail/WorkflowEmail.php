@@ -5,6 +5,7 @@ namespace App\Mail;
 use App\Domain\Branding\Branding;
 use App\Domain\Mail\Models\Mailbox;
 use App\Domain\Mail\Support\MessageIds;
+use App\Domain\Support\RichText;
 use App\Domain\Tickets\Models\Ticket;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -14,6 +15,7 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Mail\Mailables\Headers;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Str;
 
 /**
  * A free-form email sent by a workflow's "Send email" action, from the ticket's mailbox.
@@ -52,9 +54,12 @@ class WorkflowEmail extends Mailable implements ShouldQueue
     {
         return new Content(
             view: 'mail.ticket',
+            text: 'mail.text.ticket',
             with: [
                 'marker' => null,
                 'intro' => $this->body,
+                'subject' => $this->ticket->subject,
+                'preheader' => Str::limit(RichText::toPlainText($this->body), 140),
                 'reply' => null,
                 'history' => collect(),
                 'url' => $this->url,

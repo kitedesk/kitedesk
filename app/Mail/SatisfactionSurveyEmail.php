@@ -57,6 +57,7 @@ class SatisfactionSurveyEmail extends Mailable implements ShouldQueue
 
         return new Content(
             view: 'mail.satisfaction',
+            text: 'mail.text.satisfaction',
             with: [
                 'name' => ($this->rating->user ?? $ticket->requester)->name,
                 'subject' => $ticket->subject,

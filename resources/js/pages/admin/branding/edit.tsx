@@ -2,6 +2,7 @@ import { Head, useForm } from '@inertiajs/react';
 import { AlertTriangle, ImageUp, Plus, RotateCcw, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
+import { EmailPreviewFrame } from '@/components/admin/email-preview-frame';
 import { AdminPageHeader } from '@/components/admin/page-header';
 import { TextField } from '@/components/admin/text-field';
 import AppLogoIcon from '@/components/app-logo-icon';
@@ -22,7 +23,6 @@ import { useTranslation } from '@/hooks/use-translation';
 import {
     brandVariables,
     contrastWithWhite,
-    foregroundHex,
     isHexColor,
 } from '@/lib/brand-color';
 import { edit, update } from '@/routes/admin/branding';
@@ -93,11 +93,6 @@ export default function Branding({
         ? form.data.primary_color
         : null;
     const lowContrast = color !== null && contrastWithWhite(color) < 3;
-
-    const logoPreview = useAssetPreview(
-        form.data.logo,
-        form.data.remove_logo ? null : assets.logo,
-    );
 
     const setAsset = (key: AssetKey, file: File | null) =>
         form.setData((data) => ({
@@ -347,16 +342,17 @@ export default function Branding({
                         error={errors.email_footer}
                         multiline
                     />
-                    <EmailPreview
-                        name={form.data.name}
-                        logo={
-                            logoPreview && !isSvg(form.data.logo, assets.logo)
-                                ? logoPreview
-                                : null
-                        }
-                        color={color ?? DEFAULT_COLOR}
-                        footer={form.data.email_footer}
+                    <EmailPreviewFrame
+                        types={['ticket', 'notification']}
+                        params={{
+                            name: form.data.name || undefined,
+                            color: color ?? undefined,
+                            footer: form.data.email_footer,
+                        }}
                     />
+                    <p className="text-xs text-muted-foreground">
+                        {t('A new logo shows in the preview once it is saved.')}
+                    </p>
                 </Section>
 
                 <Section
@@ -583,14 +579,6 @@ function useAssetPreview(file: File | null, current: string | null) {
     return file ? url : current;
 }
 
-function isSvg(file: File | null, current: string | null): boolean {
-    if (file) {
-        return file.name.toLowerCase().endsWith('.svg');
-    }
-
-    return current?.split('?')[0].toLowerCase().endsWith('.svg') ?? false;
-}
-
 function AssetField({
     id,
     label,
@@ -727,48 +715,6 @@ function ColorPreview({
             <div className="rounded-md border px-3 py-1.5 text-sm text-muted-foreground ring-[3px] ring-ring/50">
                 {t('Focused field')}
             </div>
-        </div>
-    );
-}
-
-function EmailPreview({
-    name,
-    logo,
-    color,
-    footer,
-}: {
-    name: string;
-    logo: string | null;
-    color: string;
-    footer: string;
-}) {
-    const { t } = useTranslation();
-
-    return (
-        <div className="rounded-lg border bg-[#f4f4f7] p-4 text-[#1f2937]">
-            <div className="mb-3 text-center">
-                {logo ? (
-                    <img src={logo} alt="" className="mx-auto h-8 w-auto" />
-                ) : (
-                    <span className="text-sm font-semibold">{name}</span>
-                )}
-            </div>
-            <div className="space-y-3 rounded-lg border border-[#e5e7eb] bg-white p-4 text-sm">
-                <p>{t('Hi Jane, we replied to your request.')}</p>
-                <span
-                    className="inline-block rounded-md px-3 py-1.5 text-xs font-semibold"
-                    style={{
-                        backgroundColor: color,
-                        color: foregroundHex(color),
-                    }}
-                >
-                    {t('View request')}
-                </span>
-            </div>
-            <p className="mt-3 text-center text-xs whitespace-pre-line text-[#9ca3af]">
-                {t('Request :number', { number: '#42' })} · {name}
-                {footer && `\n${footer}`}
-            </p>
         </div>
     );
 }

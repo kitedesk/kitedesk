@@ -115,4 +115,22 @@ return [
         'name' => env('MAIL_FROM_NAME', env('APP_NAME', 'KiteDesk')),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Markdown Mail Settings
+    |--------------------------------------------------------------------------
+    |
+    | Notification emails use KiteDesk's layout (resources/views/vendor/mail) and
+    | typography (html/themes/kitedesk.css), the same look as ticket emails.
+    |
+    */
+
+    'markdown' => [
+        'theme' => 'kitedesk',
+
+        'paths' => [
+            resource_path('views/vendor/mail'),
+        ],
+    ],
+
 ];
