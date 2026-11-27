@@ -2,9 +2,11 @@
 
 namespace Database\Factories;
 
+use App\Domain\Accounts\Enums\OrganizationRole;
 use App\Domain\Accounts\Enums\Permission;
 use App\Domain\Accounts\Enums\TicketAccess;
 use App\Domain\Accounts\Enums\UserType;
+use App\Domain\Accounts\Models\Organization;
 use App\Domain\Accounts\Models\Role;
 use App\Domain\Accounts\Support\RoleCatalog;
 use App\Models\User;
@@ -97,6 +99,18 @@ class UserFactory extends Factory
     public function lightAgent(): static
     {
         return $this->withRole(RoleCatalog::LIGHT_AGENT);
+    }
+
+    /**
+     * A customer confirmed in the organization.
+     */
+    public function inOrganization(Organization $organization, OrganizationRole $role = OrganizationRole::Member): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'organization_id' => $organization->id,
+            'organization_role' => $role,
+            'organization_linked_at' => now(),
+        ]);
     }
 
     /**

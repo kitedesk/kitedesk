@@ -2,7 +2,6 @@
 
 namespace App\Domain\Tickets\Actions;
 
-use App\Domain\Accounts\Models\Organization;
 use App\Domain\Sla\SlaTracker;
 use App\Domain\Support\RichText;
 use App\Domain\Tickets\Enums\TicketChannel;
@@ -65,7 +64,8 @@ class CreateTicket
             'group_id' => $attributes['group_id'] ?? null,
             'category_id' => $category?->id,
             'ticket_form_id' => ($category !== null ? $category->resolveForm() : TicketForm::default())?->id,
-            'organization_id' => $requester->organization_id ?? Organization::forEmail($requester->email)?->id,
+            // Only confirmed members count; a matching email domain is just a suggestion to staff.
+            'organization_id' => $requester->organization_id,
             'custom_fields' => isset($attributes['custom_fields']) ? TicketField::normalizeValues($attributes['custom_fields']) : null,
         ]);
         $ticket->created_at = now();

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Domain\Accounts\Enums\OrganizationRole;
 use App\Domain\Accounts\Enums\Permission;
 use App\Domain\Accounts\Enums\UserType;
 use App\Domain\Accounts\Models\Role;
@@ -31,6 +32,8 @@ class SaveUserRequest extends FormRequest
             'type' => ['required', Rule::enum(UserType::class)],
             'role_id' => ['nullable', 'required_if:type,'.UserType::Staff->value, 'integer', Rule::exists('roles', 'id')],
             'organization_id' => ['nullable', 'integer', Rule::exists('organizations', 'id')],
+            /** `member` or `authorized_contact` (may act for the organization). Defaults to member. */
+            'organization_role' => ['nullable', Rule::enum(OrganizationRole::class)],
             'timezone' => ['nullable', 'timezone:all'],
             'locale' => ['nullable', Rule::in(array_keys(config('kitedesk.locales', [])))],
             'job_title' => ['nullable', 'string', 'max:255'],
@@ -59,11 +62,11 @@ class SaveUserRequest extends FormRequest
     /**
      * The validated input in the shape `SaveUser` takes.
      *
-     * @return array{name: string, email: string, type: string, organization_id?: int|null, timezone?: string|null, locale?: string|null, job_title?: string|null, phone?: string|null, group_ids?: list<int>}
+     * @return array{name: string, email: string, type: string, organization_id?: int|null, organization_role?: string|null, timezone?: string|null, locale?: string|null, job_title?: string|null, phone?: string|null, group_ids?: list<int>}
      */
     public function userData(): array
     {
-        /** @var array{name: string, email: string, type: string, organization_id?: int|null, timezone?: string|null, locale?: string|null, job_title?: string|null, phone?: string|null, group_ids?: list<int>} */
+        /** @var array{name: string, email: string, type: string, organization_id?: int|null, organization_role?: string|null, timezone?: string|null, locale?: string|null, job_title?: string|null, phone?: string|null, group_ids?: list<int>} */
         return collect($this->validated())->except('role_id')->all();
     }
 

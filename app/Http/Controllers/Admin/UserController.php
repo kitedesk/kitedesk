@@ -39,11 +39,14 @@ class UserController extends Controller
     {
         $audience = in_array($request->string('audience')->toString(), ['customers', 'deactivated'], true) ? $request->string('audience')->toString() : 'staff';
         $search = trim($request->string('search')->toString());
+        // From the organizations page: the people in one organization.
+        $organization = $request->filled('organization') ? Organization::query()->find($request->integer('organization')) : null;
 
         $users = User::query()
             ->when($audience === 'deactivated', fn (Builder $query) => $query->whereNotNull('deactivated_at'), fn (Builder $query) => $query->active())
             ->when($audience === 'staff', fn (Builder $query) => $query->staff())
             ->when($audience === 'customers', fn (Builder $query) => $query->customers())
+            ->when($organization !== null, fn (Builder $query) => $query->where('organization_id', $organization?->id))
             ->when($search !== '', fn (Builder $query) => $query->where(fn (Builder $inner) => $inner
                 ->where('name', 'like', "%{$search}%")
                 ->orWhere('email', 'like', "%{$search}%")))
@@ -61,6 +64,7 @@ class UserController extends Controller
                 'type' => $user->type->value,
                 'role_label' => $user->staffRole()?->displayName() ?? $user->type->label(),
                 'organization' => $user->organization?->only(['id', 'name']),
+                'organization_role' => $user->organization_id !== null ? $user->organization_role?->label() : null,
                 'groups' => $user->groups->map->only(['id', 'name'])->values(),
                 'tickets_count' => $user->requested_tickets_count,
                 'email_verified' => $user->email_verified_at !== null,
@@ -73,6 +77,7 @@ class UserController extends Controller
         return Inertia::render('admin/users/index', [
             'audience' => $audience,
             'search' => $search,
+            'organization' => $organization?->only(['id', 'name']),
             'users' => $users,
             'deactivatedCount' => User::query()->whereNotNull('deactivated_at')->count(),
         ]);
@@ -100,7 +105,7 @@ class UserController extends Controller
 
     public function show(Request $request, User $user): Response
     {
-        $user->load(['organization:id,name', 'groups:id,name', 'roles']);
+        $user->load(['organization:id,name', 'organizationLinker:id,name', 'groups:id,name', 'roles']);
 
         return Inertia::render('admin/users/show', [
             'user' => [
@@ -112,6 +117,11 @@ class UserController extends Controller
                 'role_label' => $user->staffRole()?->displayName() ?? $user->type->label(),
                 'is_admin' => $user->isAdmin(),
                 'organization' => $user->organization?->only(['id', 'name']),
+                'organization_role' => $user->organization_id !== null ? $user->organization_role?->label() : null,
+                'organization_linked' => $user->organization_id !== null ? [
+                    'by' => $user->organizationLinker?->name,
+                    'at' => $user->organization_linked_at?->toIso8601String(),
+                ] : null,
                 'groups' => $user->groups->map->only(['id', 'name'])->values(),
                 'job_title' => $user->job_title,
                 'phone' => $user->phone,
@@ -160,6 +170,7 @@ class UserController extends Controller
                 'role' => $user->staffRole() !== null ? (string) $user->staffRole()->id : UserType::Customer->value,
                 'avatar' => $user->avatar,
                 'organization_id' => $user->organization_id,
+                'organization_role' => $user->organization_role?->value,
                 'timezone' => $user->timezone,
                 'locale' => $user->locale,
                 'job_title' => $user->job_title,

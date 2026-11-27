@@ -97,6 +97,10 @@ type UserDetail = {
     role_label: string;
     is_admin: boolean;
     organization: { id: number; name: string } | null;
+    /** "Member" or "Authorized contact" while in an organization. */
+    organization_role: string | null;
+    /** Who confirmed the organization, and when. */
+    organization_linked: { by: string | null; at: string | null } | null;
     groups: { id: number; name: string }[];
     job_title: string | null;
     phone: string | null;
@@ -709,7 +713,40 @@ function DetailsCard({ user }: { user: UserDetail }) {
                         </DetailRow>
                     ) : (
                         <DetailRow icon={Building2} label={t('Organization')}>
-                            {user.organization?.name ?? (
+                            {user.organization ? (
+                                <span className="space-y-0.5">
+                                    <span className="block">
+                                        {user.organization.name}
+                                        {user.organization_role &&
+                                            ` · ${user.organization_role}`}
+                                    </span>
+                                    {user.organization_linked?.at && (
+                                        <span className="block text-xs text-muted-foreground">
+                                            {user.organization_linked.by
+                                                ? t(
+                                                      'Confirmed by :name on :date',
+                                                      {
+                                                          name: user
+                                                              .organization_linked
+                                                              .by,
+                                                          date: formatDateTime(
+                                                              user
+                                                                  .organization_linked
+                                                                  .at,
+                                                          ),
+                                                      },
+                                                  )
+                                                : t('Confirmed on :date', {
+                                                      date: formatDateTime(
+                                                          user
+                                                              .organization_linked
+                                                              .at,
+                                                      ),
+                                                  })}
+                                        </span>
+                                    )}
+                                </span>
+                            ) : (
                                 <span className="text-muted-foreground">
                                     {t('None')}
                                 </span>

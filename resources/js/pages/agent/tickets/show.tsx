@@ -10,6 +10,10 @@ import { MessageThread } from '@/components/tickets/message-thread';
 import { PriorityLabel } from '@/components/tickets/priority-label';
 import type { AiFeatures } from '@/components/tickets/ai-assistant';
 import { ReplyComposer } from '@/components/tickets/reply-composer';
+import {
+    OrganizationBadge,
+    RequesterOrganization,
+} from '@/components/tickets/requester-organization';
 import { SlaTimer } from '@/components/tickets/sla-timer';
 import { StatusBadge } from '@/components/tickets/status-badge';
 import { Badge } from '@/components/ui/badge';
@@ -84,6 +88,13 @@ type Props = {
         phone: string | null;
         timezone: string | null;
         organization: { id: number; name: string } | null;
+        organization_role: 'member' | 'authorized_contact' | null;
+        /** Who confirmed the organization, and when. */
+        organization_linked: { by: string | null; at: string | null } | null;
+        email_verified: boolean;
+        /** The organization their email domain points to, while none is confirmed. */
+        suggested_organization: { id: number; name: string } | null;
+        can_link_organization: boolean;
         created_at: string;
         /** The requester's departments when they are an agent (internal requests); null for customers. */
         departments: string[] | null;
@@ -430,9 +441,17 @@ export default function TicketShow({
                             )}
                         </div>
                         <div className="mt-2 flex items-start gap-3">
-                            <h1 className="min-w-0 flex-1 text-xl font-semibold tracking-tight text-balance">
-                                {ticket.subject}
-                            </h1>
+                            <div className="min-w-0 flex-1">
+                                <h1 className="text-xl font-semibold tracking-tight text-balance">
+                                    {ticket.subject}
+                                </h1>
+                                {requester.departments === null && (
+                                    <OrganizationBadge
+                                        requester={requester}
+                                        className="mt-1.5"
+                                    />
+                                )}
+                            </div>
                             {ai.summaries && !showSummary && (
                                 <SummarizeButton
                                     onClick={() => setShowSummary(true)}
@@ -593,7 +612,7 @@ export default function TicketShow({
                 </section>
 
                 <aside className="order-3 hidden space-y-6 overflow-y-auto border-l p-4 xl:block">
-                    <RequesterCard requester={requester} />
+                    <RequesterCard ticketId={ticket.id} requester={requester} />
                     <RequesterTickets tickets={requesterTickets} />
                     <ActivityLog
                         activity={activity}
@@ -606,7 +625,13 @@ export default function TicketShow({
     );
 }
 
-function RequesterCard({ requester }: { requester: Props['requester'] }) {
+function RequesterCard({
+    ticketId,
+    requester,
+}: {
+    ticketId: number;
+    requester: Props['requester'];
+}) {
     const { t, localeTag } = useTranslation();
     const localTime = requester.timezone
         ? new Date().toLocaleTimeString(localeTag, {
@@ -663,13 +688,20 @@ function RequesterCard({ requester }: { requester: Props['requester'] }) {
                         </a>
                     </div>
                 )}
-                {requester.organization && (
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                        <Building2 className="size-3.5 shrink-0" />
-                        <span className="truncate">
-                            {requester.organization.name}
-                        </span>
-                    </div>
+                {requester.departments === null ? (
+                    <RequesterOrganization
+                        ticketId={ticketId}
+                        requester={requester}
+                    />
+                ) : (
+                    requester.organization && (
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                            <Building2 className="size-3.5 shrink-0" />
+                            <span className="truncate">
+                                {requester.organization.name}
+                            </span>
+                        </div>
+                    )
                 )}
                 {localTime && (
                     <div className="flex items-center gap-2 text-muted-foreground">

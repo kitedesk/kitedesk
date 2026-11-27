@@ -83,6 +83,7 @@ class RoleCatalog
             Permission::ReceiveAssignments,
             Permission::UseSecrets,
             Permission::UseAi,
+            Permission::LinkCustomers,
             Permission::ViewReports,
             Permission::ExportReports,
         ];

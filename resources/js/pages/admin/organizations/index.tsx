@@ -1,4 +1,4 @@
-import { Form, Head, router } from '@inertiajs/react';
+import { Form, Head, Link, router } from '@inertiajs/react';
 import { Building2, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { ConfirmAction } from '@/components/admin/confirm-action';
@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label';
 import { SlidePagination } from '@/components/ui/slide-pagination';
 import { useTranslation } from '@/hooks/use-translation';
 import { destroy, index, store, update } from '@/routes/admin/organizations';
+import { index as usersIndex } from '@/routes/admin/users';
 
 type Organization = {
     id: number;
@@ -102,7 +103,20 @@ export default function OrganizationsIndex({ search, organizations }: Props) {
                                     {organization.domains?.join(', ') || '—'}
                                 </td>
                                 <td className="hidden px-3 py-3 sm:table-cell">
-                                    {organization.members_count}
+                                    <Link
+                                        href={usersIndex({
+                                            query: {
+                                                audience: 'customers',
+                                                organization: organization.id,
+                                            },
+                                        })}
+                                        className="hover:text-primary hover:underline"
+                                        title={t('See the people in :name', {
+                                            name: organization.name,
+                                        })}
+                                    >
+                                        {organization.members_count}
+                                    </Link>
                                 </td>
                                 <td className="hidden px-3 py-3 sm:table-cell">
                                     {organization.tickets_count}

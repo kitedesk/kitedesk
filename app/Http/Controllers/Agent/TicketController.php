@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers\Agent;
 
+use App\Domain\Accounts\Enums\OrganizationRole;
 use App\Domain\Accounts\Enums\Permission;
 use App\Domain\Accounts\Models\Group;
+use App\Domain\Accounts\Models\Organization;
 use App\Domain\Ai\Support\AiSettings;
 use App\Domain\Support\EnumOptions;
 use App\Domain\Tickets\Actions\CreateTicket;
@@ -206,6 +208,7 @@ class TicketController extends Controller
 
         $ticket->load([
             'requester.organization',
+            'requester.organizationLinker:id,name',
             'assignee',
             'group',
             'category.parent',
@@ -237,6 +240,7 @@ class TicketController extends Controller
                 'phone' => $ticket->requester->phone,
                 'timezone' => $ticket->requester->timezone,
                 'organization' => $ticket->requester->organization?->only(['id', 'name']),
+                ...$this->requesterOrganization($request, $ticket->requester),
                 'created_at' => $ticket->requester->created_at?->toIso8601String(),
                 'departments' => $ticket->requester->isStaff() ? $ticket->requester->groups()->orderBy('name')->pluck('name')->all() : null,
             ],
@@ -314,6 +318,29 @@ class TicketController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Ticket :number deleted.', ['number' => $reference])]);
 
         return to_route('agent.tickets.index');
+    }
+
+    /**
+     * How the requester relates to an organization: their confirmed role and who confirmed it,
+     * or (not confirmed yet) the organization their email domain points to.
+     *
+     * @return array{organization_role: string|null, organization_linked: array{by: string|null, at: string|null}|null, email_verified: bool, suggested_organization: array{id: int, name: string}|null, can_link_organization: bool}
+     */
+    private function requesterOrganization(Request $request, User $requester): array
+    {
+        $linked = $requester->organization_id !== null;
+        $suggested = ! $linked && ! $requester->isStaff() ? Organization::forEmail($requester->email) : null;
+
+        return [
+            'organization_role' => $linked ? ($requester->organization_role ?? OrganizationRole::Member)->value : null,
+            'organization_linked' => $linked ? [
+                'by' => $requester->organizationLinker?->name,
+                'at' => $requester->organization_linked_at?->toIso8601String(),
+            ] : null,
+            'email_verified' => $requester->email_verified_at !== null,
+            'suggested_organization' => $suggested !== null ? ['id' => $suggested->id, 'name' => $suggested->name] : null,
+            'can_link_organization' => ! $requester->isStaff() && $request->user()->hasPermission(Permission::LinkCustomers),
+        ];
     }
 
     /**

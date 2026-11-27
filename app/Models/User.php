@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Domain\Accounts\Enums\OrganizationRole;
 use App\Domain\Accounts\Enums\Permission;
 use App\Domain\Accounts\Enums\TicketAccess;
 use App\Domain\Accounts\Enums\UserType;
@@ -50,6 +51,9 @@ use Spatie\Permission\Traits\HasRoles;
  * @property string $email
  * @property UserType $type
  * @property int|null $organization_id
+ * @property OrganizationRole|null $organization_role
+ * @property Carbon|null $organization_linked_at
+ * @property int|null $organization_linked_by
  * @property string|null $timezone
  * @property string|null $locale
  * @property string|null $avatar_path
@@ -103,6 +107,24 @@ class User extends Authenticatable implements HasLocalePreference, MustVerifyEma
     public function organization(): BelongsTo
     {
         return $this->belongsTo(Organization::class);
+    }
+
+    /**
+     * The staff member who confirmed this customer's organization.
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function organizationLinker(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'organization_linked_by');
+    }
+
+    /**
+     * Confirmed as someone who may act for their organization.
+     */
+    public function isAuthorizedContact(): bool
+    {
+        return $this->organization_id !== null && $this->organization_role === OrganizationRole::AuthorizedContact;
     }
 
     /**
@@ -326,6 +348,8 @@ class User extends Authenticatable implements HasLocalePreference, MustVerifyEma
     {
         return [
             'type' => UserType::class,
+            'organization_role' => OrganizationRole::class,
+            'organization_linked_at' => 'datetime',
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',

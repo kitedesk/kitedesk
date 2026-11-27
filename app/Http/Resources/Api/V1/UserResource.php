@@ -30,6 +30,8 @@ class UserResource extends ApiResource
             /** Staff only. */
             'role' => self::named($this->staffRole()),
             'organization' => self::named($this->organization),
+            /** `member` or `authorized_contact` (may act for the organization); null without an organization. */
+            'organization_role' => $this->organization_id !== null ? $this->organization_role?->value : null,
             /** Staff only: the groups whose tickets they work. */
             'groups' => $this->isStaff() ? $this->groups->map(fn ($group): ?array => self::named($group))->values()->all() : [],
             'timezone' => $this->timezone,

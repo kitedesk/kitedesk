@@ -18,6 +18,7 @@ enum Permission: string
     case ReceiveAssignments = 'tickets.receive_assignments';
     case UseSecrets = 'tickets.secrets';
     case UseAi = 'tickets.use_ai';
+    case LinkCustomers = 'tickets.link_customers';
     case ShareViews = 'views.share';
     case ShareCannedResponses = 'canned_responses.share';
     case ViewReports = 'reports.view';
@@ -47,6 +48,7 @@ enum Permission: string
             self::ReceiveAssignments => __('Be assigned tickets'),
             self::UseSecrets => __('Request and share secrets'),
             self::UseAi => __('Use the AI assistant'),
+            self::LinkCustomers => __('Link customers to organizations'),
             self::ShareViews => __('Share views with the team'),
             self::ShareCannedResponses => __('Share canned responses with the team'),
             self::ViewReports => __('View reports'),
@@ -77,6 +79,7 @@ enum Permission: string
             self::ReceiveAssignments => __('Appear in the assignee list, receive forwarded and auto-assigned tickets, and get new ticket emails.'),
             self::UseSecrets => __('Exchange passwords and other secrets with customers through encrypted links.'),
             self::UseAi => __('Summarize tickets and draft or improve replies with the AI assistant. Ticket text is sent to the AI provider set up by an admin.'),
+            self::LinkCustomers => __('Confirm which organization a customer belongs to, and whether they may act for it.'),
             self::ManageTeam => __('Anyone with this permission can change roles, including their own.'),
             self::ViewAuditLog => __('Who signed in, and who changed users, roles, settings and tickets, with IP addresses.'),
             self::ManageModules => __('Switch optional modules on or off for everyone. Disabling keeps the module\'s data.'),

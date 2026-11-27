@@ -44,12 +44,11 @@ test('creating a ticket stores the first message and starts the SLA clocks', fun
     Event::assertDispatched(TicketCreated::class);
 });
 
-test('tickets are linked to the organization that owns the requester email domain', function () {
+test('tickets belong to the requester\'s confirmed organization, not to one their email domain matches', function () {
     $organization = Organization::factory()->create(['domains' => ['acme.test']]);
 
-    $ticket = openTicket(User::factory()->create(['email' => 'jane@ACME.test']));
-
-    expect($ticket->organization_id)->toBe($organization->id);
+    expect(openTicket(User::factory()->create(['email' => 'jane@ACME.test']))->organization_id)->toBeNull()
+        ->and(openTicket(User::factory()->inOrganization($organization)->create())->organization_id)->toBe($organization->id);
 });
 
 test('a public agent reply records the first response and opens the ticket', function () {
