@@ -1,6 +1,6 @@
 import { router, usePage } from '@inertiajs/react';
 import { m } from 'framer-motion';
-import { Forward, Lock, Sparkles } from 'lucide-react';
+import { Forward, Lock, Sparkles, SquareKanban } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { SecretCard } from '@/components/secrets/secret-card';
 import { MessageAttachments } from '@/components/tickets/message-attachments';
@@ -117,7 +117,9 @@ export function MessageThread({
                                     message.author?.name ??
                                     (message.workflow
                                         ? t('Workflow')
-                                        : t('System'))
+                                        : message.jira
+                                          ? 'Jira'
+                                          : t('System'))
                                 }
                                 className="mt-0.5"
                             />
@@ -135,7 +137,9 @@ export function MessageThread({
                                                 ? t('Workflow: :name', {
                                                       name: message.workflow,
                                                   })
-                                                : t('System'))}
+                                                : message.jira
+                                                  ? 'Jira'
+                                                  : t('System'))}
                                     </span>
                                     {isRequester && (
                                         <span className="text-xs text-muted-foreground">
@@ -146,6 +150,23 @@ export function MessageThread({
                                         <span className="inline-flex items-center gap-1 rounded bg-amber-500/15 px-1.5 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-300">
                                             <Lock className="size-3" />{' '}
                                             {t('Internal note')}
+                                        </span>
+                                    )}
+                                    {message.jira && (
+                                        <span className="inline-flex items-center gap-1 rounded bg-blue-500/15 px-1.5 py-0.5 text-[11px] font-medium text-blue-700 dark:text-blue-300">
+                                            <SquareKanban className="size-3" />{' '}
+                                            {message.jira.issue_key}
+                                        </span>
+                                    )}
+                                    {(message.jira_sent?.length ?? 0) > 0 && (
+                                        <span
+                                            className="inline-flex items-center gap-1 rounded bg-blue-500/15 px-1.5 py-0.5 text-[11px] font-medium text-blue-700 dark:text-blue-300"
+                                            title={message.jira_sent?.join(
+                                                ', ',
+                                            )}
+                                        >
+                                            <SquareKanban className="size-3" />{' '}
+                                            {t('Sent to Jira')}
                                         </span>
                                     )}
                                     {message.forwarded_to && (

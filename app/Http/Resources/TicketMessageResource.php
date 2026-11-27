@@ -29,6 +29,13 @@ class TicketMessageResource extends JsonResource
             // Drafted with the AI assistant, or sent from an AI client over MCP (staff only).
             'ai_assisted' => $request->user()?->isStaff() ? (bool) ($this->metadata['ai_assisted'] ?? false) : false,
             'via_mcp' => $request->user()?->isStaff() ? ($this->metadata['via'] ?? null) === 'mcp' : false,
+            // Notes brought in from a linked Jira issue, and the issues a note was sent to (staff only).
+            'jira' => $request->user()?->isStaff() && is_array($this->metadata['jira'] ?? null) ? [
+                'issue_key' => (string) ($this->metadata['jira']['issue_key'] ?? ''),
+                'kind' => (string) ($this->metadata['jira']['kind'] ?? 'comment'),
+                'author' => $this->metadata['jira']['author'] ?? null,
+            ] : null,
+            'jira_sent' => $request->user()?->isStaff() ? array_values((array) ($this->metadata['jira_sent'] ?? [])) : [],
             'author' => $this->whenLoaded('author', fn () => $this->author ? (new UserSummaryResource($this->author))->resolve($request) : null),
             'attachments' => $this->whenLoaded('media', fn () => $this->getMedia('attachments')->map(fn (Media $media): array => [
                 'id' => $media->id,

@@ -58,6 +58,8 @@ type Activity = {
     score: number | null;
     /** Label of the secret a `secret_*` event is about. */
     secret: string | null;
+    /** Key of the Jira issue a `jira_*` event is about. */
+    jira?: string | null;
     changes: { old: Record<string, unknown>; new: Record<string, unknown> };
     created_at: string;
 };
@@ -874,6 +876,10 @@ function ActivityLog({
                 return t('created the ticket');
             case 'rated':
                 return t('rated the support');
+            case 'jira_linked':
+                return t('linked Jira issue :key', { key: entry.jira ?? '' });
+            case 'jira_unlinked':
+                return t('unlinked Jira issue :key', { key: entry.jira ?? '' });
             case 'secret_requested':
                 return t('requested the secret “:label”', { label });
             case 'secret_shared':
@@ -929,7 +935,8 @@ function ActivityLog({
                             )}
                             {entry.event !== 'created' &&
                                 entry.event !== 'rated' &&
-                                !entry.event?.startsWith('secret_') && (
+                                !entry.event?.startsWith('secret_') &&
+                                !entry.event?.startsWith('jira_') && (
                                     <ul className="mt-1 space-y-0.5">
                                         {changeRows(entry).map((row) => (
                                             <li key={row.key}>

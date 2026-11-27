@@ -118,6 +118,14 @@ export type TicketMessage = {
     ai_assisted?: boolean;
     /** Sent by an AI client over MCP, on the author's behalf (staff only). */
     via_mcp?: boolean;
+    /** Brought in from a linked Jira issue: a comment or a status change (staff only). */
+    jira?: {
+        issue_key: string;
+        kind: 'comment' | 'status';
+        author: string | null;
+    } | null;
+    /** Keys of the Jira issues this internal note was posted to (staff only). */
+    jira_sent?: string[];
     attachments?: Attachment[];
     /** Secret requests and shared secrets sent with the reply. */
     secrets?: TicketSecret[];

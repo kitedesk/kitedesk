@@ -13,6 +13,8 @@ import { configureEcho } from '@laravel/echo-react';
 
 // First-party KiteDesk packages register their navigation and other hooks here.
 import.meta.glob('/vendor/kitedesk/*/resources/js/index.ts', { eager: true });
+// Optional modules shipped with core (e.g. Jira) register theirs the same way.
+import.meta.glob('/resources/js/modules/*/index.ts', { eager: true });
 
 // Reverb settings come from the server at runtime, so a prebuilt image works anywhere. Without
 // them Echo does nothing, rather than failing on every signed-in page.

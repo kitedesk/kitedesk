@@ -361,6 +361,7 @@ class TicketController extends Controller
                 'workflow' => $activity->properties?->get('workflow'),
                 'score' => $activity->event === 'rated' ? $activity->properties?->get('score') : null,
                 'secret' => str_starts_with((string) $activity->event, 'secret_') ? $activity->properties?->get('secret') : null,
+                'jira' => str_starts_with((string) $activity->event, 'jira_') ? $activity->properties?->get('jira') : null,
                 'changes' => [
                     'old' => $activity->attribute_changes?->get('old') ?? [],
                     'new' => $activity->attribute_changes?->get('attributes') ?? [],
